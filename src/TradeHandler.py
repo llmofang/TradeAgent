@@ -1,23 +1,39 @@
 import pyautogui
 import threading
 import Queue
+from datetime import datetime
+from Event import OrderStatusEvent
+from utils import get_text_from_clipboard
 
 
 class TradeHandler(threading.Thread):
-    def __init__(self, buyCmd, sellCmd, cancelCmd, checkCmd, events):
-        self.buyCmd = buyCmd
-        self.sellCmd = sellCmd
-        self.cancelCmd = cancelCmd
-        self.checkCmd = checkCmd
-        self.events = events
+    def __init__(self, buy_cmd, sell_cmd, cancel_cmd, check_cmd, events_in, events_out, check_order=False):
+        super(TradeHandler, self).__init__()
+        self._stop = threading.Event()
 
-        self.buyPosStock = self.getVarPos(buyCmd, 'stockcode')
-        self.buyPosPrice = self.getVarPos(buyCmd, 'stockprice')
-        self.buyPosVol = self.getVarPos(buyCmd, 'stocknum')
+        self.buy_cmd = buy_cmd
+        self.sell_cmd = sell_cmd
+        self.cancel_cmd = cancel_cmd
+        self.check_cmd = check_cmd
+        self.events_in = events_in
+        self.events_out = events_out
+        self.check_order = check_order
 
-        self.sellPosStock = self.getVarPos(sellCmd, 'stockcode')
-        self.sellPosPrice = self.getVarPos(sellCmd, 'stockprice')
-        self.sellPosVol = self.getVarPos(sellCmd, 'stocknum')
+        self.buyPosStock = self.get_var_pos(buy_cmd, 'stockcode')
+        self.buyPosPrice = self.get_var_pos(buy_cmd, 'stockprice')
+        self.buyPosVol = self.get_var_pos(buy_cmd, 'stocknum')
+
+        self.sellPosStock = self.get_var_pos(sell_cmd, 'stockcode')
+        self.sellPosPrice = self.get_var_pos(sell_cmd, 'stockprice')
+        self.sellPosVol = self.get_var_pos(sell_cmd, 'stocknum')
+
+        self.last_check_orders_time = datetime.now()
+
+    def stop(self):
+        self._stop.set()
+
+    def stopped(self):
+        return self._stop.isSet()
 
     def get_var_pos(self, cmd, key):
         i = 0
@@ -34,18 +50,25 @@ class TradeHandler(threading.Thread):
             cmd[posVol][2] = event.quantity
 
     def buy_stock(self, event):
-        self.replace_var(self.buyCmd, event, self.buyPosStock, self.buyPosPrice, self.buyPosVol)
-        self.execute_cmd(self.buyCmd)
+        self.replace_var(self.buy_cmd, event, self.buyPosStock, self.buyPosPrice, self.buyPosVol)
+        self.execute_cmd(self.buy_cmd)
 
     def sell_stock(self, event):
-        self.replace_var(self.sellCmd, event, self.sellPosStock, self.sellPosPrice, self.sellPosVol)
-        self.execute_cmd(self.buyCmd)
+        self.replace_var(self.sell_cmd, event, self.sellPosStock, self.sellPosPrice, self.sellPosVol)
+        self.execute_cmd(self.sell_cmd)
 
     def cancel_order(self, event):
         pass
 
-    def check_entrust(self, event):
-        pass
+    def get_orders(self):
+        self.execute_cmd(self.check_cmd)
+        return get_text_from_clipboard()
+
+    def check_orders(self):
+        orders = self.get_orders()
+        event = OrderStatusEvent(orders)
+        print(event)
+        self.events_out.put(event)
 
     def execute_cmd(self, cmd):
         for line in cmd:
@@ -90,14 +113,15 @@ class TradeHandler(threading.Thread):
                 pyautogui.moveRel(x, y, t)
                 print 'move Rel ', x, y
             else:
-                print 'Unkown command'
+                print 'Command error!'
 
     def run(self):
         while True:
             try:
-                event = self.events.get(False)
+                # todo
+                event = self.events_in.get()
             except Queue.Empty:
-                break
+                print('queue empty error!')
             else:
                 if event is not None:
                     if event.type == 'Order':
@@ -105,12 +129,16 @@ class TradeHandler(threading.Thread):
                             self.buy_stock(event)
                         elif event.direction == 'SELL':
                             self.sell_stock(event)
+                        else:
+                            print 'Order direction error!'
 
                     elif event.type == 'CancelOrder':
                         self.cancel_order(event)
 
-                    elif event.type == 'CheckEntrust':
-                        self.check_entrust(event)
+                    elif event.type == 'CheckOrders':
+                        self.check_orders()
+
+
 
 
 

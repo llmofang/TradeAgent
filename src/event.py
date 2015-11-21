@@ -1,6 +1,7 @@
 class Event(object):
     pass
 
+
 class OrderEvent(Event):
     def __init__(self, symbol, direction, price, quantity):
         self.type = 'Order'
@@ -11,19 +12,39 @@ class OrderEvent(Event):
 
     def __str__(self):
         return "OrderEvent: Symbol=%s, Direction=%s, Price=%s, quantity=%s" % \
-              (self.symbol, self.direction, self.price, self.quantity))
+               (self.symbol, self.direction, self.price, self.quantity)
+
 
 class CancelOrderEvent(Event):
-    def __init__(self, entrustNo):
+    def __init__(self, entrust_no):
         self.type = 'CancelOrder'
-        self.entrustNo = entrustNo
+        self.entrust_no = entrust_no
 
     def __str__(self):
         return "CancelOrderEvent: EntrustNo=%s" % self.entrustNo
 
-class CheckEntrustEvent(Event):
+
+class CheckOrdersEvent(Event):
     def __init__(self):
-        self.type = 'CheckEntrust'
+        self.type = 'CheckOrders'
 
     def __str__(self):
-        return "CheckEntrustEvent"
+        return "CheckOrdersEvent"
+
+
+class OrderStatusEvent(Event):
+    def __init__(self, content):
+        self.type = 'OrderStatusEvent'
+        self.content = content
+
+    def __str__(self):
+        return "OrderStatusEvent: Content = %s" % self.content
+
+class NewOrdersEvent(Event):
+    def __init__(self, new_orders):
+        self.type = 'NewOrdersEvent'
+        self.new_orders = new_orders
+
+    def __str__(self):
+        return "OrderStatusEvent: NewOrders = %s" % self.new_orders
+
