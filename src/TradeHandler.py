@@ -2,12 +2,13 @@ import pyautogui
 import threading
 import Queue
 from datetime import datetime
+from datetime import timedelta
 from Event import OrderStatusEvent
-from utils import get_text_from_clipboard
+import pandas as pd
 
 
 class TradeHandler(threading.Thread):
-    def __init__(self, buy_cmd, sell_cmd, cancel_cmd, check_cmd, events_in, events_out, check_order=False):
+    def __init__(self, buy_cmd, sell_cmd, cancel_cmd, check_cmd, events_in, events_out, auto_check_orders=False):
         super(TradeHandler, self).__init__()
         self._stop = threading.Event()
 
@@ -17,7 +18,7 @@ class TradeHandler(threading.Thread):
         self.check_cmd = check_cmd
         self.events_in = events_in
         self.events_out = events_out
-        self.check_order = check_order
+        self.auto_check_orders = auto_check_orders
 
         self.buyPosStock = self.get_var_pos(buy_cmd, 'stockcode')
         self.buyPosPrice = self.get_var_pos(buy_cmd, 'stockprice')
@@ -62,7 +63,7 @@ class TradeHandler(threading.Thread):
 
     def get_orders(self):
         self.execute_cmd(self.check_cmd)
-        return get_text_from_clipboard()
+        return pd.read_clipboard(encoding='gbk')
 
     def check_orders(self):
         orders = self.get_orders()
@@ -119,9 +120,13 @@ class TradeHandler(threading.Thread):
         while True:
             try:
                 # todo
-                event = self.events_in.get()
+                event = self.events_in.get(False)
             except Queue.Empty:
-                print('queue empty error!')
+                if self.auto_check_orders:
+                    if datetime.now() - self.last_check_orders_time > timedelta(seconds=3):
+                        self.check_orders()
+                        self.last_check_orders_time = datetime.now()
+                continue
             else:
                 if event is not None:
                     if event.type == 'Order':

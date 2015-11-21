@@ -3,19 +3,18 @@ import numpy as np
 import pandas as pd
 from qpython.qtype import QException
 from pandas import DataFrame
-from Event import OrderEvent
+from Event import *
 
 
 class RequestHandler(threading.Thread):
 
-    def __init__(self, q, events_in, events_out, request_table, response_table, users):
+    def __init__(self, q, events_response, events_trade, request_table, users):
         super(RequestHandler, self).__init__()
         self._stop = threading.Event()
         self.q = q
-        self.events_in = events_in
-        self.events_out = events_out
+        self.events_response = events_response
+        self.events_trade = events_trade
         self.request_table = request_table
-        self.response_table = response_table
         if isinstance(users, list):
             self.users = users
         else:
@@ -27,15 +26,9 @@ class RequestHandler(threading.Thread):
     def stopped(self):
         return self._stop.isSet()
 
-    def get_all_request(self):
-        query = 'select from ' + self.request_table
-        self.df_all_requests = self.q.sync(query)
-        print('self.df_all_requests:', self.df_all_requests)
-
     def subscribe_request(self):
         # TODO
         self.q.sync('.u.sub', np.string_(self.request_table), np.string_('' if self.users == [] else self.users))
-        # self.q.sync('.u.sub', np.string_(self.cancel_table), np.string_(self.users))
 
     def get_new_requests(self):
         index = ['time', 'sym', 'qid']
@@ -58,13 +51,14 @@ class RequestHandler(threading.Thread):
                     else:
                         print("message.data content error!")
             print('df_new_requests:', df_new_requests)
-            self.df_all_requests = pd.concat([self.df_all_requests, df_new_requests])
             return df_new_requests
 
         except QException, e:
                 print(e)
 
-    def parse_new_request(self, df_new_requests):
+    def send_events(self, df_new_requests):
+        new_order_event = NewOrdersEvent(df_new_requests)
+        self.events_response.put(new_order_event)
         for key, row in df_new_requests.iterrows():
             # TODO symbol should be symbol type
             symbol = str(int(row.stockcode))
@@ -73,28 +67,18 @@ class RequestHandler(threading.Thread):
             direction = 'BUY' if int(row.askvol) > 0 else 'SELL'
 
             quantity = str(abs(int(row.askvol)))
-            event = OrderEvent(symbol, direction, price, quantity)
-            print('generate event: %s' % event)
-            self.events_out.put(event)
-            print('RequestHandler events_out size: %s' % self.events_out.qsize)
-
-    def send_response(self, df):
-        pass
-
-    def get_order_status(self):
-        pass
-
-    def update_order_status(self):
-        pass
+            order_event = OrderEvent(symbol, direction, price, quantity)
+            print('generate event: %s' % order_event)
+            self.events_trade.put(order_event)
+            print('RequestHandler events_out size: %s' % self.events_trade.qsize)
 
     def run(self):
-        self.get_all_request()
         self.subscribe_request()
 
         while not self.stopped():
             print('.')
             df_new_requests = self.get_new_requests()
-            self.parse_new_request(df_new_requests)
+            self.send_events(df_new_requests)
 
 
 

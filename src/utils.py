@@ -14,9 +14,3 @@ def read_commands(filename):
         f.close()
     return lines
 
-
-def get_text_from_clipboard():
-    w.OpenClipboard()
-    text = w.GetClipboardData(win32con.CF_TEXT)
-    w.CloseClipboard()
-    return text
