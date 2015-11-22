@@ -2,6 +2,8 @@ import threading
 from Queue import Queue
 import numpy as np
 import pandas as pd
+from datetime import datetime
+from datetime import timedelta
 from qpython.qtype import QException
 from pandas import DataFrame
 from Event import *
@@ -42,19 +44,18 @@ class ResponseHandler(threading.Thread):
 
     def compute_changes(self, event):
         self.orders['changed'] = np.zeros(len(self.orders))
-        raw_orders = event.orders
-        raw_orders['tagged'] = np.zeros(len(raw_orders))
-
-        new_orders = pd.merge
+        new_orders = event.orders
+        #new_orders['tagged'] = np.zeros(len(new_orders))
 
         # 更新已标记了委托号且未完成的委托
         # todo
         tagged = self.orders[self.orders.entrustno > 0]
+        # todo cancel
         tagged_unfinished = tagged[tagged.askvol != tagged.bidvol]
         for i in range(len(tagged_unfinished)):
             changed = 0
             entrust_no = tagged_unfinished.loc[i]['entrustno']
-            new_row = raw_orders[raw_orders[u'委托编号']==entrust_no]
+            new_row = new_orders[new_orders[u'委托编号']==entrust_no]
             if tagged_unfinished.loc[i]['bidprice'] != new_row.loc[0][u'成交价格']:
                 tagged_unfinished.loc[i]['bidprice'] = new_row.loc[0][u'成交价格']
                 changed = 1
@@ -64,15 +65,42 @@ class ResponseHandler(threading.Thread):
             # todo update status
             # if tagged_unfinished.loc[i]['status'] != new_row.loc[0][u'委托状态']:
             #     tagged_unfinished.loc[i]['status'] = new_row.loc[0][u'委托状态']
-            #     changed = 1
             tagged_unfinished.loc[i]['changed'] = changed
+        tagged_changes = tagged_unfinished[tagged_unfinished[changed] == 1]
 
         # 标记委托号，并更新成交信息
-        untagged = self.orders[self.orders.entrustno == 0]
-        to_tagged = raw_orders[raw_orders[u'委托编号'] != self.orders[self.orders['entrustno'] > 0]['entrustno'] ]
+        nearest30m = datetime.now() - timedelta(minutes=30)
+        untagged = self.orders[self.orders.entrustno < 1]
+        untagged = untagged.rest_index()
+        untagged = untagged[untagged['time'] > nearest30m]
 
+        to_tagged = new_orders[new_orders[u'委托编号'] != self.orders[self.orders['entrustno'] > 0]['entrustno'] ]
+        to_tagged = to_tagged.set_index([u'委托时间'])
+        for row in untagged.iterrows():
+            old = row.time - timedelta(minutes=2)
+            new = row.time + timedelta(minutes=2)
+            time_match = to_tagged.between_time(old, new)
+            match = time_match[(time_match[u'证券代码'] == row.stockcode) & (time_match[u'委托价格'] == row.askprice) & \
+                               (time_match[u'委托数量'] == abs(row.askvol)) & \
+                               (time_match[u'买卖'] == (u'买入' if row.askvol > 0 else u'卖出'))]
+            if len(match) > 0:
+                if len(match) ==1:
+                    print('Perfect match row: %s' % row)
+                else:
+                    print('Find more than 1 for row: ' % row)
+                row.entrustno = match[0][u'委托编号']
+                row.bidprice = match[0][u'成交价格']
+                row.bidvol = match[0][u'成交数量']
+                row.changed = 1
+                # todo 撤单数量
+            else:
+                print('Can not find row: %s' % row)
+
+        untagged = untagged.set_index(['time', 'sym', 'qid'])
+        untagged_changes = untagged[untagged['changed'] == 1]
+
+        changes = pd.concat([tagged_changes, untagged_changes])
         return 'changes'
-        pass
 
     def send_changes(self, changes):
         # todo
