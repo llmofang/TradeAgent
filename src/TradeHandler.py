@@ -63,7 +63,7 @@ class TradeHandler(threading.Thread):
 
     def get_orders(self):
         self.execute_cmd(self.check_cmd)
-        return pd.read_clipboard(encoding='gbk')
+        return pd.read_clipboard(encoding='gbk', parse_dates=[u'委托时间'])
 
     def check_orders(self):
         orders = self.get_orders()

@@ -33,9 +33,9 @@ class CheckOrdersEvent(Event):
 
 
 class OrderStatusEvent(Event):
-    def __init__(self, content):
+    def __init__(self, orders):
         self.type = 'OrderStatusEvent'
-        self.content = content
+        self.orders = orders
 
     def __str__(self):
         return "OrderStatusEvent: Content = %s" % self.content

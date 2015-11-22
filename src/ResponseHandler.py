@@ -24,11 +24,11 @@ class ResponseHandler(threading.Thread):
 
     def get_all_orders(self):
         query = 'select from ' + self.response_table
-        self.all_orders = self.q(query)
+        self.orders = self.q(query)
 
     def get_new_orders(self, event):
         new_orders = event.new_orders
-        self.all_orders = pd.concat([self.all_orders, new_orders])
+        self.orders = pd.concat([self.orders, new_orders])
         # todo
         if self.q('set', np.string_('my_new_orders'), new_orders) =='my_new_orders' :
             print('set new orders to my_new_orders successful!')
@@ -41,9 +41,36 @@ class ResponseHandler(threading.Thread):
             print('wsupd trade2  error!')
 
     def compute_changes(self, event):
-        # convert to event's new_order to df, order by time
-        # del finished
-        #
+        self.orders['changed'] = np.zeros(len(self.orders))
+        raw_orders = event.orders
+        raw_orders['tagged'] = np.zeros(len(raw_orders))
+
+        new_orders = pd.merge
+
+        # 更新已标记了委托号且未完成的委托
+        # todo
+        tagged = self.orders[self.orders.entrustno > 0]
+        tagged_unfinished = tagged[tagged.askvol != tagged.bidvol]
+        for i in range(len(tagged_unfinished)):
+            changed = 0
+            entrust_no = tagged_unfinished.loc[i]['entrustno']
+            new_row = raw_orders[raw_orders[u'委托编号']==entrust_no]
+            if tagged_unfinished.loc[i]['bidprice'] != new_row.loc[0][u'成交价格']:
+                tagged_unfinished.loc[i]['bidprice'] = new_row.loc[0][u'成交价格']
+                changed = 1
+            if tagged_unfinished.loc[i]['bidvol'] != new_row.loc[0][u'成交数量']:
+                tagged_unfinished.loc[i]['bidvol'] = new_row.loc[0][u'成交数量']
+                changed = 1
+            # todo update status
+            # if tagged_unfinished.loc[i]['status'] != new_row.loc[0][u'委托状态']:
+            #     tagged_unfinished.loc[i]['status'] = new_row.loc[0][u'委托状态']
+            #     changed = 1
+            tagged_unfinished.loc[i]['changed'] = changed
+
+        # 标记委托号，并更新成交信息
+        untagged = self.orders[self.orders.entrustno == 0]
+        to_tagged = raw_orders[raw_orders[u'委托编号'] != self.orders[self.orders['entrustno'] > 0]['entrustno'] ]
+
         return 'changes'
         pass
 
