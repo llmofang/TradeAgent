@@ -1,3 +1,4 @@
+# -*- coding: cp936 -*-
 import pyautogui
 import threading
 import Queue
@@ -63,7 +64,7 @@ class TradeHandler(threading.Thread):
 
     def get_orders(self):
         self.execute_cmd(self.check_cmd)
-        return pd.read_clipboard(encoding='gbk', parse_dates=[u'å§”æ‰˜æ—¶é—´'])
+        return pd.read_clipboard(encoding='gbk', parse_dates=[u'Î¯ÍÐÊ±¼ä'])
 
     def check_orders(self):
         orders = self.get_orders()
@@ -123,9 +124,11 @@ class TradeHandler(threading.Thread):
                 event = self.events_in.get(False)
             except Queue.Empty:
                 if self.auto_check_orders:
-                    if datetime.now() - self.last_check_orders_time > timedelta(seconds=3):
+                    if datetime.now() - self.last_check_orders_time > timedelta(seconds=10):
                         self.check_orders()
                         self.last_check_orders_time = datetime.now()
+                        # for debug only check once
+                        self.auto_check_orders = False
                 continue
             else:
                 if event is not None:

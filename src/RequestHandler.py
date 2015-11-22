@@ -1,3 +1,4 @@
+# -*- coding: cp936 -*-
 import threading
 import numpy as np
 import pandas as pd
@@ -42,12 +43,11 @@ class RequestHandler(threading.Thread):
                 # unpack upd message
                 if len(message.data) == 3 and message.data[0] == 'upd' and message.data[1] == self.request_table:
                     if isinstance(message.data[2], DataFrame):
-                        df_new_requests = message.data[2].set_index(index)
+                        df_new_requests = message.data[2]
                     elif isinstance(message.data[2], list):
-
                         df_new_requests = pd.concat(message.data[2], axis=1)
                         df_new_requests.columns = columns
-                        df_new_requests = df_new_requests.set_index(index)
+
                     else:
                         print("message.data content error!")
             print('df_new_requests:', df_new_requests)
@@ -79,7 +79,6 @@ class RequestHandler(threading.Thread):
             print('.')
             df_new_requests = self.get_new_requests()
             self.send_events(df_new_requests)
-
 
 
 

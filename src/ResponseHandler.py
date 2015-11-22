@@ -1,3 +1,4 @@
+# -*- coding: cp936 -*-
 import threading
 from Queue import Queue
 import numpy as np
@@ -5,8 +6,6 @@ import pandas as pd
 from datetime import datetime
 from datetime import timedelta
 from qpython.qtype import QException
-from pandas import DataFrame
-from Event import *
 
 
 class ResponseHandler(threading.Thread):
@@ -27,80 +26,97 @@ class ResponseHandler(threading.Thread):
     def get_all_orders(self):
         query = 'select from ' + self.response_table
         self.orders = self.q(query)
+        self.table_meta = self.orders.meta
 
     def get_new_orders(self, event):
         new_orders = event.new_orders
+        new_orders[['qid','entrustno', 'stockcode', 'askvol', 'bidvol', 'status']] = \
+            new_orders[['qid','entrustno', 'stockcode', 'askvol', 'bidvol', 'status']].astype(int)
+        new_orders = new_orders.set_index(['time', 'sym', 'qid'])
+        new_orders.meta = self.table_meta
         self.orders = pd.concat([self.orders, new_orders])
         # todo
-        if self.q('set', np.string_('my_new_orders'), new_orders) =='my_new_orders' :
-            print('set new orders to my_new_orders successful!')
-        else:
-            print('sset new orders to my_new_orders error!')
+        try:
+            if self.q('set', np.string_('my_new_orders'), new_orders) == 'my_new_orders':
+                print('set new orders to my_new_orders successful!')
+            else:
+                print('set new orders to my_new_orders error!')
 
-        if self.q('wsupd[`trade2; my_new_orders]') == 'trade2':
-            print('wsupd trade2 successful! ')
-        else:
-            print('wsupd trade2  error!')
+            if self.q('wsupd[`trade2; my_new_orders]') == 'trade2':
+                print('wsupd trade2 successful! ')
+            else:
+                print('wsupd trade2  error!')
+        except QException, e:
+                print(e)
 
     def compute_changes(self, event):
-        self.orders['changed'] = np.zeros(len(self.orders))
-        new_orders = event.orders
-        #new_orders['tagged'] = np.zeros(len(new_orders))
+        try:
+            self.orders['changed'] = np.zeros(len(self.orders))
+            self.orders['tagged'] = np.zeros(len(self.orders))
+            self.orders['tagged'] = self.orders['stockcode'].map(lambda x: True if x > 0 else False)
+            new_orders = event.orders
+            # new_orders['tagged'] = np.zeros(len(new_orders))
 
-        # æ›´æ–°å·²æ ‡è®°äº†å§”æ‰˜å·ä¸”æœªå®Œæˆçš„å§”æ‰˜
-        # todo
-        tagged = self.orders[self.orders.entrustno > 0]
-        # todo cancel
-        tagged_unfinished = tagged[tagged.askvol != tagged.bidvol]
-        for i in range(len(tagged_unfinished)):
-            changed = 0
-            entrust_no = tagged_unfinished.loc[i]['entrustno']
-            new_row = new_orders[new_orders[u'å§”æ‰˜ç¼–å·']==entrust_no]
-            if tagged_unfinished.loc[i]['bidprice'] != new_row.loc[0][u'æˆäº¤ä»·æ ¼']:
-                tagged_unfinished.loc[i]['bidprice'] = new_row.loc[0][u'æˆäº¤ä»·æ ¼']
-                changed = 1
-            if tagged_unfinished.loc[i]['bidvol'] != new_row.loc[0][u'æˆäº¤æ•°é‡']:
-                tagged_unfinished.loc[i]['bidvol'] = new_row.loc[0][u'æˆäº¤æ•°é‡']
-                changed = 1
-            # todo update status
-            # if tagged_unfinished.loc[i]['status'] != new_row.loc[0][u'å§”æ‰˜çŠ¶æ€']:
-            #     tagged_unfinished.loc[i]['status'] = new_row.loc[0][u'å§”æ‰˜çŠ¶æ€']
-            tagged_unfinished.loc[i]['changed'] = changed
-        tagged_changes = tagged_unfinished[tagged_unfinished[changed] == 1]
-
-        # æ ‡è®°å§”æ‰˜å·ï¼Œå¹¶æ›´æ–°æˆäº¤ä¿¡æ¯
-        nearest30m = datetime.now() - timedelta(minutes=30)
-        untagged = self.orders[self.orders.entrustno < 1]
-        untagged = untagged.rest_index()
-        untagged = untagged[untagged['time'] > nearest30m]
-
-        to_tagged = new_orders[new_orders[u'å§”æ‰˜ç¼–å·'] != self.orders[self.orders['entrustno'] > 0]['entrustno'] ]
-        to_tagged = to_tagged.set_index([u'å§”æ‰˜æ—¶é—´'])
-        for row in untagged.iterrows():
-            old = row.time - timedelta(minutes=2)
-            new = row.time + timedelta(minutes=2)
-            time_match = to_tagged.between_time(old, new)
-            match = time_match[(time_match[u'è¯åˆ¸ä»£ç '] == row.stockcode) & (time_match[u'å§”æ‰˜ä»·æ ¼'] == row.askprice) & \
-                               (time_match[u'å§”æ‰˜æ•°é‡'] == abs(row.askvol)) & \
-                               (time_match[u'ä¹°å–'] == (u'ä¹°å…¥' if row.askvol > 0 else u'å–å‡º'))]
-            if len(match) > 0:
-                if len(match) ==1:
-                    print('Perfect match row: %s' % row)
-                else:
-                    print('Find more than 1 for row: ' % row)
-                row.entrustno = match[0][u'å§”æ‰˜ç¼–å·']
-                row.bidprice = match[0][u'æˆäº¤ä»·æ ¼']
-                row.bidvol = match[0][u'æˆäº¤æ•°é‡']
-                row.changed = 1
-                # todo æ’¤å•æ•°é‡
+            # ¸üĞÂÒÑ±ê¼ÇÁËÎ¯ÍĞºÅÇÒÎ´Íê³ÉµÄÎ¯ÍĞ
+            # todo
+            tagged = self.orders[self.orders.entrustno > 0]
+            # todo cancel
+            tagged_unfinished = tagged[tagged.askvol != tagged.bidvol]
+            if len(tagged_unfinished) > 0:
+                for i in range(len(tagged_unfinished)):
+                    changed = 0
+                    entrust_no = tagged_unfinished.loc[i]['entrustno']
+                    new_row = new_orders[new_orders[u'Î¯ÍĞ±àºÅ']==entrust_no]
+                    if tagged_unfinished.loc[i]['bidprice'] != new_row.loc[0][u'³É½»¼Û¸ñ']:
+                        tagged_unfinished.loc[i]['bidprice'] = new_row.loc[0][u'³É½»¼Û¸ñ']
+                        changed = 1
+                    if tagged_unfinished.loc[i]['bidvol'] != new_row.loc[0][u'³É½»ÊıÁ¿']:
+                        tagged_unfinished.loc[i]['bidvol'] = new_row.loc[0][u'³É½»ÊıÁ¿']
+                        changed = 1
+                    # todo update status
+                    # if tagged_unfinished.loc[i]['status'] != new_row.loc[0][u'Î¯ÍĞ×´Ì¬']:
+                    #     tagged_unfinished.loc[i]['status'] = new_row.loc[0][u'Î¯ÍĞ×´Ì¬']
+                    tagged_unfinished.loc[i]['changed'] = changed
+                tagged_changes = tagged_unfinished[tagged_unfinished[changed] == 1]
             else:
-                print('Can not find row: %s' % row)
+                tagged_changes = []
 
-        untagged = untagged.set_index(['time', 'sym', 'qid'])
-        untagged_changes = untagged[untagged['changed'] == 1]
+            # ±ê¼ÇÎ¯ÍĞºÅ£¬²¢¸üĞÂ³É½»ĞÅÏ¢
+            nearest3m = datetime.now() - timedelta(minutes=3)
+            untagged = self.orders[self.orders.entrustno < 1]
+            untagged = untagged.reset_index()
+            untagged = untagged[untagged['time'] > nearest3m]
 
-        changes = pd.concat([tagged_changes, untagged_changes])
-        return 'changes'
+            to_tagged = new_orders[new_orders[u'Î¯ÍĞ±àºÅ'].isin(self.orders['entrustno']) == False ]
+            to_tagged = to_tagged.set_index([u'Î¯ÍĞÊ±¼ä'])
+            for i in range(len(untagged)):
+                old = untagged['time'].iloc[i] - timedelta(minutes=2)
+                new = untagged['time'].iloc[i] + timedelta(minutes=2)
+                time_match = to_tagged.between_time(old, new)
+                match = time_match[(time_match[u'Ö¤È¯´úÂë'] == untagged['stockcode'].iloc[i]) & (time_match[u'Î¯ÍĞ¼Û¸ñ'] == untagged['askprice'].iloc[i]) & \
+                                   (time_match[u'Î¯ÍĞÊıÁ¿'] == abs(untagged['askvol'].iloc[i])) & \
+                                   (time_match[u'ÂòÂô'] == (u'ÂòÈë' if untagged['askvol'].iloc[i] > 0 else u'Âô³ö'))]
+                if len(match) > 0:
+                    if len(match) == 1:
+                        print('Perfect match row!')
+                    else:
+                        print('Find more than 1 for row!')
+                    untagged['entrustno'].iloc[i] = match[u'Î¯ÍĞ±àºÅ'].iloc[0]
+                    untagged['bidprice'].iloc[i] = match[u'³É½»¼Û¸ñ'].iloc[0]
+                    untagged['bidvol'].iloc[i] = match[u'³É½»ÊıÁ¿'].iloc[0]
+                    untagged['changed'].iloc[i] = 1
+                    # todo ³·µ¥ÊıÁ¿
+                else:
+                    print('Can not find matched order!')
+
+            untagged = untagged.set_index(['time', 'sym', 'qid'])
+            untagged_changes = untagged[untagged['changed'] == 1]
+
+            changes = pd.concat([tagged_changes, untagged_changes])
+            return changes
+        except Exception, e:
+            print(e)
+
 
     def send_changes(self, changes):
         # todo
