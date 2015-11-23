@@ -1,4 +1,5 @@
 press r 1 0 0
+press f5 1 0 0.5
 moveto 600 600 0.5
 click 0.2 0 0
 hotkey ctrl c 0

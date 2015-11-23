@@ -29,6 +29,8 @@ class TradeHandler(threading.Thread):
         self.sellPosPrice = self.get_var_pos(sell_cmd, 'stockprice')
         self.sellPosVol = self.get_var_pos(sell_cmd, 'stocknum')
 
+        self.cancelPosEntrust = self.get_var_pos(cancel_cmd, 'entrustno')
+
         self.last_check_orders_time = datetime.now()
 
     def stop(self):
@@ -45,32 +47,49 @@ class TradeHandler(threading.Thread):
             i += 1
         return -1
 
-    def replace_var(self, cmd, event, posStock, posPrice, posVol):
+    def replace_order_var(self, cmd, event, posStock, posPrice, posVol):
         if event.type == 'Order':
             cmd[posStock][2] = event.symbol
             cmd[posPrice][2] = event.price
             cmd[posVol][2] = event.quantity
 
+    def replace_cancel_var(self, cmd, event, posEntrust):
+        if event.type == 'CancelOrder':
+            cmd[posEntrust][2] = event.entrustno
+
     def buy_stock(self, event):
-        self.replace_var(self.buy_cmd, event, self.buyPosStock, self.buyPosPrice, self.buyPosVol)
+        self.replace_order_var(self.buy_cmd, event, self.buyPosStock, self.buyPosPrice, self.buyPosVol)
         self.execute_cmd(self.buy_cmd)
 
     def sell_stock(self, event):
-        self.replace_var(self.sell_cmd, event, self.sellPosStock, self.sellPosPrice, self.sellPosVol)
+        self.replace_order_var(self.sell_cmd, event, self.sellPosStock, self.sellPosPrice, self.sellPosVol)
         self.execute_cmd(self.sell_cmd)
 
     def cancel_order(self, event):
-        pass
+        if event.entrustno > 0:
+            self.replace_cancel_var(self.cancel_cmd, event, self.cancelPosEntrust)
+            self.execute_cmd(self.cancel_cmd)
+        elif event.qid != 0:
+            # TODO
+            pass
+        else:
+            print('Unvalid cancel order command!')
 
     def get_orders(self):
         self.execute_cmd(self.check_cmd)
-        return pd.read_clipboard(encoding='gbk', parse_dates=[u'委托时间'])
+        try:
+            orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'委托时间'])
+        except Exception, e:
+            print(e)
+        else:
+            return orders
 
     def check_orders(self):
         orders = self.get_orders()
-        event = OrderStatusEvent(orders)
-        print(event)
-        self.events_out.put(event)
+        if len(orders) > 0:
+            event = OrderStatusEvent(orders)
+            print(event)
+            self.events_out.put(event)
 
     def execute_cmd(self, cmd):
         for line in cmd:
@@ -124,11 +143,11 @@ class TradeHandler(threading.Thread):
                 event = self.events_in.get(False)
             except Queue.Empty:
                 if self.auto_check_orders:
-                    if datetime.now() - self.last_check_orders_time > timedelta(seconds=10):
+                    if datetime.now() - self.last_check_orders_time > timedelta(seconds=5):
                         self.check_orders()
                         self.last_check_orders_time = datetime.now()
                         # for debug only check once
-                        self.auto_check_orders = False
+                        # self.auto_check_orders = False
                 continue
             else:
                 if event is not None:

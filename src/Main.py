@@ -6,10 +6,10 @@ from qpython import qconnection
 from utils import read_commands
 import sys
 
-BUY_LIST_FILE = 'buyStockList.txt'
-SELL_LIST_FILE = 'sellStockList.txt'
-CHECK_LIST_FILE = 'checkStockList.txt'
-CANCEL_LIST_FILE = 'cancelOrderList.txt'
+BUY_LIST_FILE = 'cmd\\buyStockList.txt'
+SELL_LIST_FILE = 'cmd\\sellStockList.txt'
+CHECK_LIST_FILE = 'cmd\\checkStockList.txt'
+CANCEL_LIST_FILE = 'cmd\\cancelOrderList.txt'
 
 buy_cmd = read_commands(BUY_LIST_FILE)
 sell_cmd = read_commands(SELL_LIST_FILE)
@@ -44,6 +44,7 @@ try:
     trade_handler.stop()
     request_handler.stop()
     response_handler.stop()
+
 finally:
     q_req.close()
     q_res.close()

@@ -16,12 +16,13 @@ class OrderEvent(Event):
 
 
 class CancelOrderEvent(Event):
-    def __init__(self, entrust_no):
+    def __init__(self, entrustno, qid=0):
         self.type = 'CancelOrder'
-        self.entrust_no = entrust_no
+        self.entrustno = entrustno
+        self.qid = qid
 
     def __str__(self):
-        return "CancelOrderEvent: EntrustNo=%s" % self.entrustNo
+        return "CancelOrderEvent: EntrustNo=%s" % (self.entrustno, self.qid)
 
 
 class CheckOrdersEvent(Event):
@@ -39,6 +40,7 @@ class OrderStatusEvent(Event):
 
     def __str__(self):
         return "OrderStatusEvent: Content = %s" % self.orders
+
 
 class NewOrdersEvent(Event):
     def __init__(self, new_orders):
