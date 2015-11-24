@@ -1,7 +1,3 @@
-import win32clipboard as w
-import win32con
-
-
 def read_commands(filename):
     lines = []
     f = open(filename)

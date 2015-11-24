@@ -3,8 +3,14 @@ from TradeHandler import TradeHandler
 from RequestHandler import RequestHandler
 from ResponseHandler import ResponseHandler
 from qpython import qconnection
-from utils import read_commands
+from Utils import read_commands
 import sys
+import logging
+import logging.config
+
+
+logging.config.fileConfig('log.conf')
+logger = logging.getLogger('main')
 
 BUY_LIST_FILE = 'cmd\\buyStockList.txt'
 SELL_LIST_FILE = 'cmd\\sellStockList.txt'
@@ -31,9 +37,10 @@ try:
     q_req.open()
     q_res.open()
 
-    trade_handler = TradeHandler(buy_cmd, sell_cmd, cancel_cmd, check_cmd, events_trade, events_response, True)
-    request_handler = RequestHandler(q_req, events_response, events_trade, q_request_table, q_sub_users)
-    response_handler = ResponseHandler(q_res, events_response, q_response_table)
+    trade_handler = TradeHandler(buy_cmd, sell_cmd, cancel_cmd, check_cmd,
+                                 events_trade, events_response, logger, True)
+    request_handler = RequestHandler(q_req, events_response, events_trade, q_request_table, q_sub_users, logger)
+    response_handler = ResponseHandler(q_res, events_response, q_response_table, logger)
 
     response_handler.start()
     trade_handler.start()

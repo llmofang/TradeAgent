@@ -9,7 +9,7 @@ import pandas as pd
 
 
 class TradeHandler(threading.Thread):
-    def __init__(self, buy_cmd, sell_cmd, cancel_cmd, check_cmd, events_in, events_out, auto_check_orders=False):
+    def __init__(self, buy_cmd, sell_cmd, cancel_cmd, check_cmd, events_in, events_out, logger, auto_check_orders=False):
         super(TradeHandler, self).__init__()
         self._stop = threading.Event()
 
@@ -32,6 +32,7 @@ class TradeHandler(threading.Thread):
         self.cancelPosEntrust = self.get_var_pos(cancel_cmd, 'entrustno')
 
         self.last_check_orders_time = datetime.now()
+        self.logger = logger
 
     def stop(self):
         self._stop.set()
@@ -77,18 +78,19 @@ class TradeHandler(threading.Thread):
 
     def get_orders(self):
         self.execute_cmd(self.check_cmd)
+        orders = []
         try:
             orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'Î¯ÍÐÊ±¼ä'])
+            self.logger(orders)
         except Exception, e:
             print(e)
-        else:
+        finally:
             return orders
 
     def check_orders(self):
         orders = self.get_orders()
         if len(orders) > 0:
             event = OrderStatusEvent(orders)
-            print(event)
             self.events_out.put(event)
 
     def execute_cmd(self, cmd):
@@ -98,12 +100,17 @@ class TradeHandler(threading.Thread):
                 y = int(line[2])
                 t = float(line[3])
                 pyautogui.moveTo(x, y)
-                print 'move to ', x, y
+                self.logger.debug('move to (%i, %i)', x, y)
 
             elif line[0] == 'doubleclick':
                 t = float(line[1])
                 pyautogui.doubleClick(interval=t)
-                print 'doubleclick'
+                self.logger.debug('doubleclick')
+
+            elif line[0] == 'rightclick':
+                t = float(line[1])
+                pyautogui.rightClick()
+                self.logger.debug('rightClick')
 
             elif line[0] == 'press':
                 key = line[1]
@@ -111,30 +118,30 @@ class TradeHandler(threading.Thread):
                 interval = float(line[3])
                 pause = float(line[4])
                 pyautogui.press(key, presses=presses, interval=interval, pause=pause)
-                print 'press ', line[1], presses, interval, pause
+                self.logger.debug('press key=%s, presses=%i, interval=%f, pause=%f ', key, presses, interval, pause)
 
             elif line[0] == 'click':
                 t = float(line[1])
                 pyautogui.click(interval=t)
-                print 'click'
+                self.logger.debug('click')
 
             elif line[0] == 'type':
                 t = float(line[3])
                 pyautogui.typewrite(line[2])
-                print 'type ', line[2]
+                self.logger.debug('type %s', line[2])
 
             elif line[0] == 'hotkey':
                 pyautogui.hotkey(line[1], line[2])
-                print 'press ', line[1] + '+' + line[2]
+                self.logger.debug('press hotkey=%s', line[1] + '+' + line[2])
 
             elif line[0] == 'moverel':
                 x = int(line[1])
                 y = int(line[2])
                 t = float(line[3])
                 pyautogui.moveRel(x, y, t)
-                print 'move Rel ', x, y
+                self.logger.debug('move Rel (%i, %i)', x, y)
             else:
-                print 'Command error!'
+                self.logger.error('AutoGui Command error!')
 
     def run(self):
         while True:
@@ -143,7 +150,7 @@ class TradeHandler(threading.Thread):
                 event = self.events_in.get(False)
             except Queue.Empty:
                 if self.auto_check_orders:
-                    if datetime.now() - self.last_check_orders_time > timedelta(seconds=5):
+                    if datetime.now() - self.last_check_orders_time > timedelta(seconds=2):
                         self.check_orders()
                         self.last_check_orders_time = datetime.now()
                         # for debug only check once
@@ -151,21 +158,17 @@ class TradeHandler(threading.Thread):
                 continue
             else:
                 if event is not None:
+                    self.logger.debug('Got Event: event=%s', event)
                     if event.type == 'Order':
                         if event.direction == 'BUY':
                             self.buy_stock(event)
                         elif event.direction == 'SELL':
                             self.sell_stock(event)
                         else:
-                            print 'Order direction error!'
+                            self.logger.error('Order direction error!')
 
                     elif event.type == 'CancelOrder':
                         self.cancel_order(event)
 
                     elif event.type == 'CheckOrders':
                         self.check_orders()
-
-
-
-
-

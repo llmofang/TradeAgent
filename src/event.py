@@ -16,7 +16,7 @@ class OrderEvent(Event):
 
 
 class CancelOrderEvent(Event):
-    def __init__(self, entrustno, qid=0):
+    def __init__(self, qid, entrustno=0):
         self.type = 'CancelOrder'
         self.entrustno = entrustno
         self.qid = qid

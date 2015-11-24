@@ -9,13 +9,14 @@ from Event import *
 
 class RequestHandler(threading.Thread):
 
-    def __init__(self, q, events_response, events_trade, request_table, users):
+    def __init__(self, q, events_response, events_trade, request_table, users, logger):
         super(RequestHandler, self).__init__()
         self._stop = threading.Event()
         self.q = q
         self.events_response = events_response
         self.events_trade = events_trade
         self.request_table = request_table
+        self.logger = logger
         if isinstance(users, list):
             self.users = users
         else:
@@ -29,6 +30,7 @@ class RequestHandler(threading.Thread):
 
     def subscribe_request(self):
         # TODO
+        self.logger.debug('subscribe trade: table=%s, users=%s', self.request_table, self.users)
         self.q.sync('.u.sub', np.string_(self.request_table), np.string_('' if self.users == [] else self.users))
 
     def get_new_requests(self):
@@ -37,7 +39,8 @@ class RequestHandler(threading.Thread):
         df_new_requests = pd.DataFrame(columns=columns)
         try:
             message = self.q.receive(data_only=False, raw=False, pandas=True)
-            print('type: %s, message type: %s, data size: %s, is_compressed: %s ' % (type(message), message.type, message.size, message.is_compressed))
+            self.logger.debug('type: %s, message type: %s, data size: %s, is_compressed: %s ',
+                              type(message), message.type, message.size, message.is_compressed)
 
             if isinstance(message.data, list):
                 # unpack upd message
@@ -51,10 +54,10 @@ class RequestHandler(threading.Thread):
                         # df_new_requests[['entrustno', 'stockcode', 'askvol', 'bidvol', 'withdraw', 'status']] = \
                         #     df_new_requests[['entrustno', 'stockcode', 'askvol', 'bidvol', 'withdraw', 'status']].astype(int)
                         # df_new_requests = df_new_requests.set_index(index)
-                        print('TODO: ')
+                        self.logger.debug('TODO: ')
                     else:
-                        print("message.data content error!")
-            print('df_new_requests:', df_new_requests)
+                        self.logger.error("message.data content error!")
+            self.logger.debug('new requests data: df_new_requests=%s', df_new_requests)
 
         except QException, e:
                 print(e)
@@ -66,26 +69,24 @@ class RequestHandler(threading.Thread):
             new_order_event = NewOrdersEvent(df_new_requests)
             self.events_response.put(new_order_event)
             for key, row in df_new_requests.iterrows():
-                if row.withdraw == row.askvol:
-                    event = CancelOrderEvent(str(int(row.entrustno)), str(row.qid))
+                if row.status == 3:
+                    event = CancelOrderEvent(str(row.qid), str(int(row.entrustno)))
                 else:
                     symbol = row.stockcode
                     price = str(round(row.askprice, 2))
                     direction = 'BUY' if int(row.askvol) > 0 else 'SELL'
                     if (row.askvol % 100) != 0:
-                        print('Order quantity not multiple by 100')
+                        self.logger.error('order quantity not multiple by 100: askvol=%i', row.askvol)
                         continue
                     quantity = str(abs(int(row.askvol)))
                     event = OrderEvent(symbol, direction, price, quantity)
 
-                print('generate event:', event)
+                self.logger.debug('generate event: event=%s', event)
                 self.events_trade.put(event)
-                print('RequestHandler events_out size: %s' % self.events_trade.qsize())
+                self.logger.debug('RequestHandler events_out size: %s', self.events_trade.qsize())
 
     def run(self):
         self.subscribe_request()
-
         while not self.stopped():
-            print('.')
             df_new_requests = self.get_new_requests()
             self.send_events(df_new_requests)
