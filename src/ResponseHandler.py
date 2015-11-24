@@ -58,7 +58,7 @@ class ResponseHandler(threading.Thread):
             if self.q('wsupd[`trade2; my_new_orders]') == 'trade2':
                 self.logger.info('wsupd trade2 successful! ')
             else:
-                self.log.error('wsupd trade2  error!')
+                self.logger.error('wsupd trade2  error!')
         except QException, e:
                 print(e)
 
@@ -163,7 +163,7 @@ class ResponseHandler(threading.Thread):
                     self.logger.error('Can not find matched order!')
 
             changes = untagged[untagged['changed'] == 1]
-            self.logger.debug('untagged orders: changes=%s')
+            self.logger.debug('untagged orders: changes=%s', changes)
             self.logger.debug('before update changes: orders=%s', self.orders)
             self.orders.update(changes)
             self.logger.debug('after update changes: orders=%s', self.orders)

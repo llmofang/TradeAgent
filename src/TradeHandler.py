@@ -81,7 +81,6 @@ class TradeHandler(threading.Thread):
         orders = []
         try:
             orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'Î¯ÍÐÊ±¼ä'])
-            self.logger(orders)
         except Exception, e:
             print(e)
         finally:
