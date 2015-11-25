@@ -30,8 +30,8 @@ q_request_table = 'trade1'
 q_response_table = 'trade2'
 q_sub_users = []
 
-q_req = qconnection.QConnection(host='183.136.130.82', port=5030, pandas=True)
-q_res = qconnection.QConnection(host='183.136.130.82', port=5030, pandas=True)
+q_req = qconnection.QConnection(host='183.136.130.82', port=15030, pandas=True)
+q_res = qconnection.QConnection(host='183.136.130.82', port=15030, pandas=True)
 
 try:
     q_req.open()

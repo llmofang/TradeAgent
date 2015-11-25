@@ -147,6 +147,7 @@ class ResponseHandler(threading.Thread):
                 self.logger.debug('find order match untagged order: match=%s', match)
                 changed = 0
                 if len(match) > 0:
+                    changed = 1
                     if len(match) == 1:
                         self.logger.debug('Perfect match row!')
                     else:
@@ -154,21 +155,16 @@ class ResponseHandler(threading.Thread):
                     entrustno = match[u'申请编号'].iloc[0]
                     if untagged['entrustno'].iloc[i] != entrustno:
                         untagged['entrustno'].iloc[i] = entrustno
-                        changed = 1
                     if untagged['bidprice'].iloc[i] != match[u'成交价格'].iloc[0]:
                         untagged['bidprice'].iloc[i] = match[u'成交价格'].iloc[0]
-                        changed = 1
                     ratio = 1 if untagged['askvol'].iloc[i] > 0 else -1
                     if untagged['bidvol'].iloc[i] != ratio * match[u'成交数量'].iloc[0]:
                         untagged['bidvol'].iloc[i] = ratio * match[u'成交数量'].iloc[0]
-                        changed = 1
                     if untagged['withdraw'].iloc[i] != match[u'已撤数量'].iloc[0]:
                         untagged['withdraw'].iloc[i] = match[u'已撤数量'].iloc[0]
-                        changed = 1
                     if untagged['status'].iloc[i] != self.status[match[u'委托状态'].iloc[0]]:
                         untagged['status'].iloc[i] = self.status[match[u'委托状态'].iloc[0]]
-                        changed = 1
-                    to_tag.loc[to_tag['entrustno'] == entrustno, 'tagged'] = 1
+                    to_tag.loc[to_tag[u'申请编号'] == entrustno, 'tagged'] = 1
                     untagged['changed'].iloc[i] = changed
 
                 else:
