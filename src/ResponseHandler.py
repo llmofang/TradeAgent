@@ -151,8 +151,9 @@ class ResponseHandler(threading.Thread):
                         self.logger.debug('Perfect match row!')
                     else:
                         self.logger.info('Find more than 1 for row!')
-                    if untagged['entrustno'].iloc[i] != match[u'ÉêÇë±àºÅ'].iloc[0]:
-                        untagged['entrustno'].iloc[i] = match[u'ÉêÇë±àºÅ'].iloc[0]
+                    entrustno = match[u'ÉêÇë±àºÅ'].iloc[0]
+                    if untagged['entrustno'].iloc[i] != entrustno:
+                        untagged['entrustno'].iloc[i] = entrustno
                         changed = 1
                     if untagged['bidprice'].iloc[i] != match[u'³É½»¼Û¸ñ'].iloc[0]:
                         untagged['bidprice'].iloc[i] = match[u'³É½»¼Û¸ñ'].iloc[0]
@@ -167,7 +168,7 @@ class ResponseHandler(threading.Thread):
                     if untagged['status'].iloc[i] != self.status[match[u'Î¯ÍÐ×´Ì¬'].iloc[0]]:
                         untagged['status'].iloc[i] = self.status[match[u'Î¯ÍÐ×´Ì¬'].iloc[0]]
                         changed = 1
-                    untagged['tagged'].iloc[i] = 1
+                    to_tag.loc[to_tag['entrustno'] == entrustno, 'tagged'] = 1
                     untagged['changed'].iloc[i] = changed
 
                 else:
