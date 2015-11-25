@@ -67,6 +67,7 @@ class RequestHandler(threading.Thread):
     def send_events(self, df_new_requests):
         if len(df_new_requests) > 0:
             new_order_event = NewOrdersEvent(df_new_requests)
+            df_new_requests = df_new_requests.reset_index()
             self.events_response.put(new_order_event)
             for key, row in df_new_requests.iterrows():
                 if row.status == 3:

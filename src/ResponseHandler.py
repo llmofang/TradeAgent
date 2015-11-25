@@ -31,17 +31,22 @@ class ResponseHandler(threading.Thread):
         query = 'select from ' + self.response_table
         self.orders = self.q(query)
         # TODO 这样有问题吧？？？？
-        self.orders.reset_index()
+        # self.orders.reset_index()
         self.table_meta = self.orders.meta
+        self.logger.debug('table meta= %s', self.table_meta)
 
     def get_new_orders(self, event):
         new_orders = event.new_orders
         self.logger.debug('got new orders: new_orders=%s', new_orders)
         # TODO: why? changed from int32 to int64
-        # print(new_orders.dtypes)
-        new_orders[['entrustno', 'stockcode', 'askvol', 'bidvol', 'withdraw', 'status']] = \
-            new_orders[['entrustno', 'stockcode', 'askvol', 'bidvol', 'withdraw', 'status']].astype(int)
+        self.logger.debug('new_orders.dtypes = %s', new_orders.dtypes)
+        new_orders[['entrustno', 'askvol', 'bidvol', 'withdraw', 'status']] = \
+            new_orders[['entrustno', 'askvol', 'bidvol', 'withdraw', 'status']].astype(int)
+        # todo
+        # new_orders = new_orders.reset_index()
         new_orders = new_orders.set_index(['sym', 'qid'])
+        # new_orders = new_orders.drop(['index'], axis=1)
+
         new_orders.meta = self.table_meta
         # self.orders = pd.concat([self.orders, new_orders])
         self.logger.debug('before update new orders: orders=%s', self.orders)
@@ -69,12 +74,14 @@ class ResponseHandler(threading.Thread):
             self.orders['tagged'] = np.zeros(len(self.orders))
             self.orders['tagged'] = self.orders['entrustno'].map(lambda x: 1 if x > 0 else 0)
             changes = self.tagged_changes(event.orders)
-            self.send_changes(changes)
-            changes = self.untagged_changes(event.orders, 3)
-            self.send_changes(changes)
+            if len(changes) > 0:
+                self.send_changes(changes)
+            changes = self.untagged_changes(event.orders, 20)
+            if len(changes) > 0:
+                self.send_changes(changes)
 
         except Exception, e:
-            print(e)
+            self.logger.error('Exception: ', e)
 
     # 更新已标记了委托号且未完成的委托
     def tagged_changes(self, new_orders):
@@ -102,13 +109,15 @@ class ResponseHandler(threading.Thread):
                         changed = 1
                     tagged_unfinished['changed'].iloc[i] = changed
             changes = tagged_unfinished[tagged_unfinished['changed'] == 1]
-            self.logger.debug('tagged and unfinished orders: changes=%s', changes)
-            self.logger.debug('before update changes: orders=%s', self.orders)
-            self.orders.update(changes)
-            self.logger.debug('after update changes: orders=%s', self.orders)
+
+            if len(changes) > 0:
+                self.logger.debug('tagged and unfinished orders: changes=%s', changes)
+                self.logger.debug('before update changes: orders=%s', self.orders)
+                self.orders.update(changes)
+                self.logger.debug('after update changes: orders=%s', self.orders)
             return changes
         except Exception, e:
-            print(e)
+            self.logger.error(e)
 
     # 标记委托号，并更新成交信息
     def untagged_changes(self, new_orders, nearest_min):
@@ -124,15 +133,16 @@ class ResponseHandler(threading.Thread):
             to_tag['tagged'] = np.zeros(len(to_tag))
             to_tag = to_tag.set_index([u'委托时间'])
             for i in range(len(untagged)):
-                old = untagged['time'].iloc[i] - timedelta(minutes=2)
-                new = untagged['time'].iloc[i] + timedelta(minutes=2)
+                old = untagged['time'].iloc[i] - timedelta(minutes=20)
+                new = untagged['time'].iloc[i] + timedelta(minutes=20)
 
                 # 时间上匹配上下2分钟的
                 time_match = to_tag.between_time(old, new)
-                match = time_match[(time_match[u'证券代码'] == untagged['stockcode'].iloc[i]) &
+                self.logger.debug('time_match: dtypes = %s', time_match.dtypes)
+                match = time_match[(time_match[u'证券代码'] == int(untagged['stockcode'].iloc[i])) &
                                    (time_match[u'委托价格'] == untagged['askprice'].iloc[i]) &
-                                   (time_match[u'委托数量'] == abs(untagged['askvol'].iloc[i])) &
-                                   (time_match[u'买卖'] == (u'买入' if untagged['askvol'].iloc[i] > 0 else u'卖出')) &
+                                   (time_match[u'委托数量'] == abs(int(untagged['askvol'].iloc[i]))) &
+                                   (time_match[u'买卖'] == (u'买入' if int(untagged['askvol'].iloc[i]) > 0 else u'卖出')) &
                                    (time_match['tagged'] == 0)]
                 self.logger.debug('find order match untagged order: match=%s', match)
                 changed = 0
@@ -164,25 +174,37 @@ class ResponseHandler(threading.Thread):
                     self.logger.error('Can not find matched order!')
 
             changes = untagged[untagged['changed'] == 1]
-            self.logger.debug('untagged orders: changes=%s', changes)
-            self.logger.debug('before update changes: orders=%s', self.orders)
-            self.orders.update(changes)
-            self.logger.debug('after update changes: orders=%s', self.orders)
+            if len(changes) > 0:
+                self.logger.debug('untagged orders: changes=%s', changes)
+                self.logger.debug('before update changes: orders=%s', self.orders)
+                self.orders.update(changes)
+                self.logger.debug('after update changes: orders=%s', self.orders)
 
         except Exception, e:
-            print(e)
+            self.logger.error(e)
         finally:
             return changes
 
     def send_changes(self, changes):
-        # changes = changes.set_index(['sym', 'qid'])
+        self.logger.debug('changes length: %i', len(changes))
         if len(changes) > 0:
-            changes = changes.drop(['tagged', 'changed'], axis=1)
-            # print(changes.dtypes)
+            # TODO
+            # changes = changes.reset_index()
+            # changes = changes.set_index(['sym', 'qid'])
+            # changes = changes.drop(['tagged', 'changed', 'index'], axis=1)
+            self.logger.debug('changes dtypes=%s', changes.dtypes)
+            self.logger.debug('send changes: changes=%s', changes)
             changes.meta = self.table_meta
-            # todo
-            self.q('set', np.string_('my_changes'), changes)
-            self.q('wsupd[`trade2; my_changes]')
+
+            if self.q('set', np.string_('my_changes'), changes) == 'my_changes':
+                self.logger.debug('set changes to my_changes successful!')
+            else:
+                self.logger.error('set changes to my_changes error!')
+
+            if self.q('wsupd[`trade2; my_changes]') == 'trade2':
+                self.logger.info('wsupd my_changes to trade2 successful! ')
+            else:
+                self.logger.error('wsupd my_changes to trade2  error!')
 
     def run(self):
         self.get_all_orders()

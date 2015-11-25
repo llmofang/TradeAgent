@@ -22,7 +22,7 @@ class CancelOrderEvent(Event):
         self.qid = qid
 
     def __str__(self):
-        return "CancelOrderEvent: EntrustNo=%s" % (self.entrustno, self.qid)
+        return "CancelOrderEvent: EntrustNo=%s, Qid = %s" % (self.entrustno, self.qid)
 
 
 class CheckOrdersEvent(Event):
