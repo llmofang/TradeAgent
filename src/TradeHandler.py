@@ -80,12 +80,14 @@ class TradeHandler(threading.Thread):
         new_orders = []
         try:
             orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'委托时间'])
-            orders = orders.drop([u'证券名称', u'委托类型', u'股东代码', u'资金帐号', u'交易市场', u'返回信息'],
-                                 axis=1)
-            orders = orders.set_index([u'委托时间'])
-            now = datetime.now()
-            old = now - timedelta(minutes=5)
-            new_orders = orders.between_time[old, now]
+            if len(orders) > 0:
+                orders = orders.drop([u'证券名称', u'委托类型', u'股东代码', u'资金帐号', u'交易市场', u'返回信息'],
+                                     axis=1)
+                orders = orders.set_index([u'委托时间'])
+                now = datetime.now()
+                old = now - timedelta(minutes=5)
+                new_orders = orders.between_time(old, now)
+                self.logger.debug('get recent orders: new_orders = %s', new_orders)
         except Exception, e:
             print(e)
         finally:
@@ -103,18 +105,21 @@ class TradeHandler(threading.Thread):
                 x = int(line[1])
                 y = int(line[2])
                 t = float(line[3])
-                pyautogui.moveTo(x, y)
-                self.logger.debug('move to (%i, %i)', x, y)
+                pyautogui.moveTo(x, y, t)
+                self.logger.debug('move to (%i, %i, %f)', x, y, t)
+
+            elif line[0] == 'click':
+                pyautogui.click()
+                self.logger.debug('click')
+
+            elif line[0] == 'rightclick':
+                pyautogui.rightClick()
+                self.logger.debug('rightClick')
 
             elif line[0] == 'doubleclick':
                 t = float(line[1])
                 pyautogui.doubleClick(interval=t)
                 self.logger.debug('doubleclick')
-
-            elif line[0] == 'rightclick':
-                t = float(line[1])
-                pyautogui.rightClick()
-                self.logger.debug('rightClick')
 
             elif line[0] == 'press':
                 key = line[1]
@@ -123,11 +128,6 @@ class TradeHandler(threading.Thread):
                 pause = float(line[4])
                 pyautogui.press(key, presses=presses, interval=interval, pause=pause)
                 self.logger.debug('press key=%s, presses=%i, interval=%f, pause=%f ', key, presses, interval, pause)
-
-            elif line[0] == 'click':
-                t = float(line[1])
-                pyautogui.click(interval=t)
-                self.logger.debug('click')
 
             elif line[0] == 'type':
                 t = float(line[3])
