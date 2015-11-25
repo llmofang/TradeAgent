@@ -76,7 +76,7 @@ class ResponseHandler(threading.Thread):
             changes = self.tagged_changes(event.orders)
             if len(changes) > 0:
                 self.send_changes(changes)
-            changes = self.untagged_changes(event.orders, 20)
+            changes = self.untagged_changes(event.orders, 2)
             if len(changes) > 0:
                 self.send_changes(changes)
 
@@ -133,8 +133,8 @@ class ResponseHandler(threading.Thread):
             to_tag['tagged'] = np.zeros(len(to_tag))
             to_tag = to_tag.set_index([u'委托时间'])
             for i in range(len(untagged)):
-                old = untagged['time'].iloc[i] - timedelta(minutes=20)
-                new = untagged['time'].iloc[i] + timedelta(minutes=20)
+                old = untagged['time'].iloc[i] - timedelta(minutes=2)
+                new = untagged['time'].iloc[i] + timedelta(minutes=2)
 
                 # 时间上匹配上下2分钟的
                 time_match = to_tag.between_time(old, new)
@@ -187,11 +187,12 @@ class ResponseHandler(threading.Thread):
 
     def send_changes(self, changes):
         self.logger.debug('changes length: %i', len(changes))
+        self.logger.debug('changes dtypes: %s', changes.dtypes)
         if len(changes) > 0:
             # TODO
             # changes = changes.reset_index()
             # changes = changes.set_index(['sym', 'qid'])
-            # changes = changes.drop(['tagged', 'changed', 'index'], axis=1)
+            changes = changes.drop(['tagged', 'changed'], axis=1)
             self.logger.debug('changes dtypes=%s', changes.dtypes)
             self.logger.debug('send changes: changes=%s', changes)
             changes.meta = self.table_meta
