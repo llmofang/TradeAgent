@@ -77,10 +77,10 @@ class TradeHandler(threading.Thread):
 
     def get_orders(self):
         self.execute_cmd(self.check_cmd)
-        orders = []
+        new_orders = []
         try:
             orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'委托时间'])
-            orders = orders.drop([u'证券名称', u'委托类型', u'股东代码', u'资金帐号', u'交易市场', u'返回信息', 'Unnamed'],
+            orders = orders.drop([u'证券名称', u'委托类型', u'股东代码', u'资金帐号', u'交易市场', u'返回信息'],
                                  axis=1)
             orders = orders.set_index([u'委托时间'])
             now = datetime.now()
