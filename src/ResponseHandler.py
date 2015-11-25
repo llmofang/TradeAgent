@@ -45,7 +45,8 @@ class ResponseHandler(threading.Thread):
         new_orders.meta = self.table_meta
         # self.orders = pd.concat([self.orders, new_orders])
         self.logger.debug('before update new orders: orders=%s', self.orders)
-        self.orders.update(new_orders)
+        self.orders = pd.concat([self.orders, new_orders[new_orders['status'] != 3]])
+        self.orders.update(new_orders[new_orders['status'] == 3])
         self.logger.debug('after update new orders: orders=%s', self.orders)
         new_orders.meta = self.table_meta
         # todo
