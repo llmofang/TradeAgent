@@ -7,7 +7,6 @@ from datetime import timedelta
 from Event import OrderStatusEvent
 import pandas as pd
 
-
 class TradeHandler(threading.Thread):
     def __init__(self, buy_cmd, sell_cmd, cancel_cmd, check_cmd, events_in, events_out, logger, auto_check_orders=False):
         super(TradeHandler, self).__init__()
@@ -81,10 +80,16 @@ class TradeHandler(threading.Thread):
         orders = []
         try:
             orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'委托时间'])
+            orders = orders.drop([u'证券名称', u'委托类型', u'股东代码', u'资金帐号', u'交易市场', u'返回信息', 'Unnamed'],
+                                 axis=1)
+            orders = orders.set_index([u'委托时间'])
+            now = datetime.now()
+            old = now - timedelta(minutes=5)
+            new_orders = orders.between_time[old, now]
         except Exception, e:
             print(e)
         finally:
-            return orders
+            return new_orders
 
     def check_orders(self):
         orders = self.get_orders()

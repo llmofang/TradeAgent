@@ -131,7 +131,7 @@ class ResponseHandler(threading.Thread):
             # 从new_orders中查找出没有匹配委托编号的记录
             to_tag = new_orders[new_orders[u'申请编号'].isin(self.orders['entrustno']) == False ]
             to_tag['tagged'] = np.zeros(len(to_tag))
-            to_tag = to_tag.set_index([u'委托时间'])
+            # to_tag = to_tag.set_index([u'委托时间'])
             for i in range(len(untagged)):
                 old = untagged['time'].iloc[i] - timedelta(minutes=2)
                 new = untagged['time'].iloc[i] + timedelta(minutes=2)
