@@ -113,9 +113,11 @@ class TradeHandler(threading.Thread):
                 self.logger.debug('move to (%i, %i, %f)', x, y, t)
 
             elif line[0] == 'click':
-                pyautogui.click()
-                pyautogui.click()
-                self.logger.debug('click')
+                try:
+                    pyautogui.click()
+                    self.logger.debug('click')
+                except Exception, e:
+                    self.logger.error(e)
 
             elif line[0] == 'rightclick':
                 pyautogui.rightClick()
