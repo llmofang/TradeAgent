@@ -39,7 +39,8 @@ try:
 
     trade_handler = TradeHandler(buy_cmd, sell_cmd, cancel_cmd, check_cmd,
                                  events_trade, events_response, logger, True)
-    request_handler = RequestHandler(q_req, events_response, events_trade, q_request_table, q_sub_users, logger)
+    request_handler = RequestHandler(q_req, events_response, events_trade, q_request_table, q_sub_users,
+                                     logger, ['CancelOrderEvent', 'OrderEvent'])
     response_handler = ResponseHandler(q_res, events_response, q_response_table, logger)
 
     response_handler.start()

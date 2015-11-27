@@ -79,14 +79,18 @@ class TradeHandler(threading.Thread):
         self.execute_cmd(self.check_cmd)
         new_orders = []
         try:
-            orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'委托时间'])
-            if len(orders) > 0:
-                orders = orders.drop([u'证券名称', u'委托类型', u'股东代码', u'资金帐号', u'交易市场', u'返回信息'],
-                                     axis=1)
-                orders = orders.set_index([u'委托时间'])
+            new_orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'委托时间'])
+            if len(new_orders) > 0:
+                columns_drop = [u'证券名称', u'委托类型', u'资金帐号', u'返回信息', 'Unnamed: 16']
+                for column in columns_drop:
+                    if column in new_orders.columns:
+                        self.logger.debug('droping unused columns: column=%s', column)
+                        new_orders = new_orders.drop(column, axis=1)
+
+                new_orders = new_orders.set_index([u'委托时间'])
                 now = datetime.now()
                 old = now - timedelta(minutes=5)
-                new_orders = orders.between_time(old, now)
+                new_orders = new_orders.between_time(old, now)
                 self.logger.debug('get recent orders: new_orders = %s', new_orders)
         except Exception, e:
             print(e)
@@ -109,6 +113,7 @@ class TradeHandler(threading.Thread):
                 self.logger.debug('move to (%i, %i, %f)', x, y, t)
 
             elif line[0] == 'click':
+                pyautogui.click()
                 pyautogui.click()
                 self.logger.debug('click')
 

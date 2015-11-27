@@ -9,13 +9,14 @@ from Event import *
 
 class RequestHandler(threading.Thread):
 
-    def __init__(self, q, events_response, events_trade, request_table, users, logger):
+    def __init__(self, q, events_response, events_trade, request_table, users, logger, event_types):
         super(RequestHandler, self).__init__()
         self._stop = threading.Event()
         self.q = q
         self.events_response = events_response
         self.events_trade = events_trade
         self.request_table = request_table
+        self.event_types = event_types
         self.logger = logger
         if isinstance(users, list):
             self.users = users
@@ -54,7 +55,7 @@ class RequestHandler(threading.Thread):
                         # df_new_requests[['entrustno', 'stockcode', 'askvol', 'bidvol', 'withdraw', 'status']] = \
                         #     df_new_requests[['entrustno', 'stockcode', 'askvol', 'bidvol', 'withdraw', 'status']].astype(int)
                         # df_new_requests = df_new_requests.set_index(index)
-                        self.logger.debug('TODO: ')
+                        self.logger.error('TODO: IT IS A LIST, I CAN NOT HANDLE IT NOW')
                     else:
                         self.logger.error("message.data content error!")
             self.logger.debug('new requests data: df_new_requests=%s', df_new_requests)
@@ -67,12 +68,13 @@ class RequestHandler(threading.Thread):
     def send_events(self, df_new_requests):
         if len(df_new_requests) > 0:
             new_order_event = NewOrdersEvent(df_new_requests)
-            df_new_requests = df_new_requests.reset_index()
             self.events_response.put(new_order_event)
+            df_new_requests = df_new_requests.reset_index()
+            event = []
             for key, row in df_new_requests.iterrows():
-                if row.status == 3:
+                if ('CancelOrderEvent' in self.event_types) and row.status == 3:
                     event = CancelOrderEvent(str(row.qid), str(int(row.entrustno)))
-                else:
+                elif 'OrderEvent' in self.event_types:
                     symbol = row.stockcode
                     price = str(round(row.askprice, 2))
                     direction = 'BUY' if int(row.askvol) > 0 else 'SELL'
@@ -82,9 +84,10 @@ class RequestHandler(threading.Thread):
                     quantity = str(abs(int(row.askvol)))
                     event = OrderEvent(symbol, direction, price, quantity)
 
-                self.logger.debug('generate event: event=%s', event)
-                self.events_trade.put(event)
-                self.logger.debug('RequestHandler events_out size: %s', self.events_trade.qsize())
+                if event:
+                    self.logger.debug('generate event: event=%s', event)
+                    self.events_trade.put(event)
+                    self.logger.debug('RequestHandler events_out size: %s', self.events_trade.qsize())
 
     def run(self):
         self.subscribe_request()

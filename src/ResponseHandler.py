@@ -38,14 +38,25 @@ class ResponseHandler(threading.Thread):
     def get_new_orders(self, event):
         new_orders = event.new_orders
         self.logger.debug('got new orders: new_orders=%s', new_orders)
-        # TODO: why? changed from int32 to int64
-        self.logger.debug('new_orders.dtypes = %s', new_orders.dtypes)
-        new_orders[['entrustno', 'askvol', 'bidvol', 'withdraw', 'status']] = \
-            new_orders[['entrustno', 'askvol', 'bidvol', 'withdraw', 'status']].astype(int)
-        # todo
-        # new_orders = new_orders.reset_index()
-        new_orders = new_orders.set_index(['sym', 'qid'])
-        # new_orders = new_orders.drop(['index'], axis=1)
+
+        try:
+            self.logger.debug('new_orders.dtypes = %s', new_orders.dtypes)
+            columns = ['entrustno', 'askvol', 'bidvol', 'withdraw', 'status']
+            for column in columns:
+                # why? somewhere changed from int32 to int64, so converting it back
+                if new_orders.dtypes[column] != 'int32':
+                    self.logger.debug('new orders column converting to int: column = %s', column)
+                    new_orders[column] = new_orders[column].astype(int)
+
+            if ('sym' not in new_orders.index.names) or ('qid' not in new_orders.index.names):
+                self.logger.debug('set index [sym, qid] for new orders')
+                new_orders = new_orders.set_index(['sym', 'qid'])
+
+            if 'index' in new_orders.columns:
+                self.logger.debug('drop index columns for new orders')
+                new_orders = new_orders.drop(['index'], axis=1)
+        except QException, e:
+            self.logger.error(e)
 
         new_orders.meta = self.table_meta
         # self.orders = pd.concat([self.orders, new_orders])
