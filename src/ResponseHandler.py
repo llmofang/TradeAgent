@@ -39,8 +39,9 @@ class ResponseHandler(threading.Thread):
         new_orders = event.new_orders
         self.logger.debug('got new orders: new_orders=%s', new_orders)
 
+        self.logger.debug('new_orders.dtypes = %s', new_orders.dtypes)
         try:
-            self.logger.debug('new_orders.dtypes = %s', new_orders.dtypes)
+            new_orders = new_orders[new_orders['status'] != 3]
             columns = ['entrustno', 'askvol', 'bidvol', 'withdraw', 'status']
             for column in columns:
                 # why? somewhere changed from int32 to int64, so converting it back
@@ -61,11 +62,11 @@ class ResponseHandler(threading.Thread):
         new_orders.meta = self.table_meta
         # self.orders = pd.concat([self.orders, new_orders])
         self.logger.debug('before update new orders: orders=%s', self.orders)
-        self.orders = pd.concat([self.orders, new_orders[new_orders['status'] != 3]])
-        self.orders.update(new_orders[new_orders['status'] == 3])
+        self.orders = pd.concat([self.orders, new_orders])
         self.logger.debug('after update new orders: orders=%s', self.orders)
         new_orders.meta = self.table_meta
-        # todo
+
+        # todo 撤单的无需更新
         try:
             if self.q('set', np.string_('my_new_orders'), new_orders) == 'my_new_orders':
                 self.logger.info('set new orders to my_new_orders successful!')
