@@ -1,4 +1,2 @@
-press r 1 0 0
-press f5 1 0 0.3
-click 600 600 0
+press f5 1 0 0
 hotkey ctrl c 0
