@@ -67,14 +67,15 @@ class RequestHandler(threading.Thread):
 
     def send_events(self, df_new_requests):
         if len(df_new_requests) > 0:
-            new_order_event = NewOrdersEvent(df_new_requests)
+            update_kdb = True if 'OrderEvent' in self.event_types else False
+            new_order_event = NewOrdersEvent(df_new_requests, update_kdb)
             self.events_response.put(new_order_event)
             df_new_requests = df_new_requests.reset_index()
             event = []
             for key, row in df_new_requests.iterrows():
-                if ('CancelOrderEvent' in self.event_types) and row.status == 3:
+                if ('CancelOrderEvent' in self.event_types) and (row.status == 3):
                     event = CancelOrderEvent(str(row.qid), str(int(row.entrustno)))
-                elif 'OrderEvent' in self.event_types:
+                elif ('OrderEvent' in self.event_types) and (row.status != 3):
                     symbol = row.stockcode
                     price = str(round(row.askprice, 2))
                     direction = 'BUY' if int(row.askvol) > 0 else 'SELL'
