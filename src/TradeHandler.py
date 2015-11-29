@@ -77,21 +77,25 @@ class TradeHandler(threading.Thread):
 
     def get_orders(self):
         self.execute_cmd(self.check_cmd)
-        new_orders = []
+        new_orders = pd.DataFrame([])
         try:
             new_orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'委托时间'])
             if len(new_orders) > 0:
-                columns_drop = [u'证券名称', u'委托类型', u'资金帐号', u'返回信息', 'Unnamed: 16']
-                for column in columns_drop:
-                    if column in new_orders.columns:
-                        self.logger.debug('droping unused columns: column=%s', column)
-                        new_orders = new_orders.drop(column, axis=1)
-
                 new_orders = new_orders.set_index([u'委托时间'])
                 now = datetime.now()
                 old = now - timedelta(minutes=5)
                 new_orders = new_orders.between_time(old, now)
                 self.logger.debug('get recent orders: new_orders = %s', new_orders)
+
+                if len(new_orders) > 0:
+                    columns_drop = [u'证券名称', u'委托类型', u'资金帐号', u'返回信息', 'Unnamed: 16']
+                    for column in columns_drop:
+                        if column in new_orders.columns:
+                            self.logger.debug('droping unused columns: column=%s', column)
+                            new_orders = new_orders.drop(column, axis=1)
+                else:
+                    new_orders = pd.DataFrame([])
+
         except Exception, e:
             print(e)
         finally:
@@ -101,6 +105,7 @@ class TradeHandler(threading.Thread):
         orders = self.get_orders()
         if len(orders) > 0:
             event = OrderStatusEvent(orders)
+            self.logger.debug('generate OrderStatusEvent=%s', event)
             self.events_out.put(event)
 
     def execute_cmd(self, cmd):
@@ -161,7 +166,7 @@ class TradeHandler(threading.Thread):
                 event = self.events_in.get(False)
             except Queue.Empty:
                 if self.auto_check_orders:
-                    if datetime.now() - self.last_check_orders_time > timedelta(seconds=2):
+                    if datetime.now() - self.last_check_orders_time > timedelta(seconds=1):
                         self.check_orders()
                         self.last_check_orders_time = datetime.now()
                         # for debug only check once
