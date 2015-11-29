@@ -66,19 +66,20 @@ class ResponseHandler(threading.Thread):
         self.logger.debug('after update new orders: orders=%s', self.orders)
         new_orders.meta = self.table_meta
 
-        # todo 撤单的无需更新
-        try:
-            if self.q('set', np.string_('my_new_orders'), new_orders) == 'my_new_orders':
-                self.logger.info('set new orders to my_new_orders successful!')
-            else:
-                self.logger.error('set new orders to my_new_orders error!')
+        if event.update_kdb:
+            # todo 撤单的无需更新
+            try:
+                if self.q('set', np.string_('my_new_orders'), new_orders) == 'my_new_orders':
+                    self.logger.info('set new orders to my_new_orders successful!')
+                else:
+                    self.logger.error('set new orders to my_new_orders error!')
 
-            if self.q('wsupd[`trade2; my_new_orders]') == 'trade2':
-                self.logger.info('wsupd trade2 successful! ')
-            else:
-                self.logger.error('wsupd trade2  error!')
-        except QException, e:
-                print(e)
+                if self.q('wsupd[`trade2; my_new_orders]') == 'trade2':
+                    self.logger.info('wsupd trade2 successful! ')
+                else:
+                    self.logger.error('wsupd trade2  error!')
+            except QException, e:
+                    print(e)
 
     def compute_changes(self, event):
         try:
