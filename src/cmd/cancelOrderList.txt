@@ -1,16 +1,10 @@
-moveto 221 363 0.2
-rightclick 0 0 0
-moveto 276 446 0.3
+moveto 268 372 0
 click 0 0 0
-moveto 260 363 0.3
+moveto 226 406 0.1
 click 0 0 0
-moveto 230 405 0.3
-click 0 0 0
-moveto 100 100 0.5
-type entrustno 600001 0.3
-moveto 100 100 0.4
+type entrustno 600001 0.1
 press enter 1 0 0
-moveto 222 380 0.5
+moveto 222 389 0.1
 doubleclick 0
-moveto 100 100 0.4
 press enter 1 0 0
+moveto 600 600 0.5
