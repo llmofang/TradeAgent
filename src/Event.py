@@ -43,9 +43,10 @@ class OrderStatusEvent(Event):
 
 
 class NewOrdersEvent(Event):
-    def __init__(self, new_orders):
+    def __init__(self, new_orders, update_kdb):
         self.type = 'NewOrdersEvent'
         self.new_orders = new_orders
+        self.update_kdb = update_kdb
 
     def __str__(self):
         return "OrderStatusEvent: NewOrders = %s" % self.new_orders
