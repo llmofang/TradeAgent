@@ -82,9 +82,9 @@ class TradeHandler(threading.Thread):
             new_orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'委托时间'])
             if len(new_orders) > 0:
                 new_orders = new_orders.set_index([u'委托时间'])
-                now = datetime.now()
-                old = now - timedelta(minutes=5)
-                new_orders = new_orders.between_time(old, now)
+                new = datetime.now() + timedelta(minutes=5)
+                old = datetime.now() - timedelta(minutes=5)
+                new_orders = new_orders.between_time(old, new)
                 self.logger.debug('get recent orders: new_orders = %s', new_orders)
 
                 if len(new_orders) > 0:
@@ -107,6 +107,11 @@ class TradeHandler(threading.Thread):
             event = OrderStatusEvent(orders)
             self.logger.debug('generate OrderStatusEvent=%s', event)
             self.events_out.put(event)
+            qsize = self.events_out.qsize()
+            if qsize > 3:
+                self.logger.error('events queue size is too large: qsize=%i', qsize)
+            else:
+                self.logger.debug('events queue size: qsize=%i', qsize)
 
     def execute_cmd(self, cmd):
         for line in cmd:
@@ -138,7 +143,7 @@ class TradeHandler(threading.Thread):
                 presses = int(line[2])
                 interval = float(line[3])
                 pause = float(line[4])
-                pyautogui.press(key, presses=presses, interval=interval, pause=pause)
+                pyautogui.press(key, pause=pause, _pause=True)
                 self.logger.debug('press key=%s, presses=%i, interval=%f, pause=%f ', key, presses, interval, pause)
 
             elif line[0] == 'type':
@@ -166,7 +171,7 @@ class TradeHandler(threading.Thread):
                 event = self.events_in.get(False)
             except Queue.Empty:
                 if self.auto_check_orders:
-                    if datetime.now() - self.last_check_orders_time > timedelta(seconds=1):
+                    if datetime.now() - self.last_check_orders_time > timedelta(seconds=0.5):
                         self.check_orders()
                         self.last_check_orders_time = datetime.now()
                         # for debug only check once

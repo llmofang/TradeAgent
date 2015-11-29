@@ -86,15 +86,12 @@ class ResponseHandler(threading.Thread):
             self.orders['changed'] = np.zeros(len(self.orders))
             self.orders['tagged'] = np.zeros(len(self.orders))
             self.orders['tagged'] = self.orders['entrustno'].map(lambda x: 1 if x > 0 else 0)
-            changes = self.tagged_changes(event.orders)
-            if len(changes) > 0:
-                self.send_changes(changes)
-            changes = self.untagged_changes(event.orders, 2)
-            if len(changes) > 0:
-                self.send_changes(changes)
+            self.tagged_changes(event.orders)
+            self.untagged_changes(event.orders, 2)
+
 
         except Exception, e:
-            self.logger.error('Exception: ', e)
+            self.logger.error('Exception: %s', e)
 
     # 更新已标记了委托号且未完成的委托
     def tagged_changes(self, new_orders):
@@ -125,10 +122,11 @@ class ResponseHandler(threading.Thread):
 
             if len(changes) > 0:
                 self.logger.debug('tagged and unfinished orders: changes=%s', changes)
+                self.logger.debug('sending changes to kdb')
+                self.send_changes(changes)
                 self.logger.debug('before update changes: orders=%s', self.orders)
                 self.orders.update(changes)
                 self.logger.debug('after update changes: orders=%s', self.orders)
-            return changes
         except Exception, e:
             self.logger.error(e)
 
@@ -186,14 +184,14 @@ class ResponseHandler(threading.Thread):
             changes = untagged[untagged['changed'] == 1]
             if len(changes) > 0:
                 self.logger.debug('untagged orders: changes=%s', changes)
+                self.logger.debug('sending changes to kdb')
+                self.send_changes(changes)
                 self.logger.debug('before update changes: orders=%s', self.orders)
                 self.orders.update(changes)
                 self.logger.debug('after update changes: orders=%s', self.orders)
 
         except Exception, e:
             self.logger.error(e)
-        finally:
-            return changes
 
     def send_changes(self, changes):
         self.logger.debug('changes length: %i', len(changes))

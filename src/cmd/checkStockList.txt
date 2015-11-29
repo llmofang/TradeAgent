@@ -1,2 +1,3 @@
 press f5 1 0 0
+press j 1 0 0.3
 hotkey ctrl c 0
