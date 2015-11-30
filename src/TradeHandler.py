@@ -171,7 +171,7 @@ class TradeHandler(threading.Thread):
                 event = self.events_in.get(False)
             except Queue.Empty:
                 if self.auto_check_orders:
-                    if datetime.now() - self.last_check_orders_time > timedelta(seconds=0.5):
+                    if datetime.now() - self.last_check_orders_time > timedelta(seconds=1):
                         self.check_orders()
                         self.last_check_orders_time = datetime.now()
                         # for debug only check once
