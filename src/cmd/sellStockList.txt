@@ -1,9 +1,10 @@
 press enter 1 0 0
 press f2 1 0 0
 type stockcode 600001 0
-press tab 2 0 0
+press tab 1 0.1 0
+press tab 1 0.1 0
 type stockprice 35.4 0
-press tab 1 0 0
+press tab 1 0 0.1
 type stocknum 1000 0
-press s 1 0 0.1
+press s 1 0 0.3
 press enter 1 0 0

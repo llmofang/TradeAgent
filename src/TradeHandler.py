@@ -143,7 +143,7 @@ class TradeHandler(threading.Thread):
                 presses = int(line[2])
                 interval = float(line[3])
                 pause = float(line[4])
-                pyautogui.press(key, pause=pause, _pause=True)
+                pyautogui.press(key, presses=presses, interval=interval, pause=pause)
                 self.logger.debug('press key=%s, presses=%i, interval=%f, pause=%f ', key, presses, interval, pause)
 
             elif line[0] == 'type':
