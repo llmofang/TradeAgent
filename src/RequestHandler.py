@@ -36,7 +36,8 @@ class RequestHandler(threading.Thread):
 
     def get_new_requests(self):
         index = ['sym', 'qid']
-        columns = ['sym', 'qid', 'time', 'entrustno', 'stockcode', 'askprice', 'askvol', 'bidprice', 'bidvol', 'withdraw', 'status']
+        columns = ['sym', 'qid', 'time', 'entrustno', 'stockcode', 'askprice', 'askvol', 'bidprice',
+                   'bidvol', 'withdraw', 'status']
         df_new_requests = pd.DataFrame(columns=columns)
         try:
             message = self.q.receive(data_only=False, raw=False, pandas=True)
@@ -58,7 +59,7 @@ class RequestHandler(threading.Thread):
                         self.logger.error('TODO: IT IS A LIST, I CAN NOT HANDLE IT NOW')
                     else:
                         self.logger.error("message.data content error!")
-            self.logger.debug('new requests data: df_new_requests=%s', df_new_requests)
+            self.logger.debug('new requests data: df_new_requests=%s', df_new_requests.to_string())
 
         except QException, e:
                 print(e)

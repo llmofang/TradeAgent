@@ -30,6 +30,7 @@ class ResponseHandler(threading.Thread):
     def get_all_orders(self):
         query = 'select from ' + self.response_table
         self.orders = self.q(query)
+        self.logger.debug('get all orders: orders=%s', self.orders.to_string())
         # TODO 这样有问题吧？？？？
         # self.orders.reset_index()
         self.table_meta = self.orders.meta
@@ -37,7 +38,7 @@ class ResponseHandler(threading.Thread):
 
     def get_new_orders(self, event):
         new_orders = event.new_orders
-        self.logger.debug('got new orders: new_orders=%s', new_orders)
+        self.logger.debug('got new orders: new_orders=%s', new_orders.to_string())
 
         self.logger.debug('new_orders.dtypes = %s', new_orders.dtypes)
         try:
@@ -61,9 +62,9 @@ class ResponseHandler(threading.Thread):
 
         new_orders.meta = self.table_meta
         # self.orders = pd.concat([self.orders, new_orders])
-        self.logger.debug('before update new orders: orders=%s', self.orders)
+        self.logger.debug('before update new orders: orders=%s', self.orders.to_string())
         self.orders = pd.concat([self.orders, new_orders])
-        self.logger.debug('after update new orders: orders=%s', self.orders)
+        self.logger.debug('after update new orders: orders=%s', self.orders.to_string())
         new_orders.meta = self.table_meta
 
         if event.update_kdb:
@@ -88,8 +89,6 @@ class ResponseHandler(threading.Thread):
             self.orders['tagged'] = self.orders['entrustno'].map(lambda x: 1 if x > 0 else 0)
             self.tagged_changes(event.orders)
             self.untagged_changes(event.orders, 2)
-
-
         except Exception, e:
             self.logger.error('Exception: %s', e)
 
@@ -121,12 +120,12 @@ class ResponseHandler(threading.Thread):
             changes = tagged_unfinished[tagged_unfinished['changed'] == 1]
 
             if len(changes) > 0:
-                self.logger.debug('tagged and unfinished orders: changes=%s', changes)
+                self.logger.debug('tagged and unfinished orders: changes=%s', changes.to_string())
                 self.logger.debug('sending changes to kdb')
                 self.send_changes(changes)
-                self.logger.debug('before update changes: orders=%s', self.orders)
+                self.logger.debug('before update changes: orders=%s', self.orders.to_string())
                 self.orders.update(changes)
-                self.logger.debug('after update changes: orders=%s', self.orders)
+                self.logger.debug('after update changes: orders=%s', self.orders.to_string())
         except Exception, e:
             self.logger.error(e)
 
@@ -138,7 +137,7 @@ class ResponseHandler(threading.Thread):
             nearest = datetime.now() - timedelta(minutes=nearest_min)
             untagged = self.orders[(self.orders['tagged'] == 0) & (self.orders['time'] > nearest)]
 
-            self.logger.debug('untagged orders: untagged=%s', untagged)
+            self.logger.debug('untagged orders: untagged=%s', untagged.to_string())
             # 从new_orders中查找出没有匹配委托编号的记录
             to_tag = new_orders[new_orders[u'申请编号'].isin(self.orders['entrustno']) == False ]
             to_tag['tagged'] = np.zeros(len(to_tag))
@@ -155,7 +154,7 @@ class ResponseHandler(threading.Thread):
                                    (time_match[u'委托数量'] == abs(int(untagged['askvol'].iloc[i]))) &
                                    (time_match[u'买卖'] == (u'买入' if int(untagged['askvol'].iloc[i]) > 0 else u'卖出')) &
                                    (time_match['tagged'] == 0)]
-                self.logger.debug('find order match untagged order: match=%s', match)
+                self.logger.debug('find order match untagged order: match=%s', match.to_string())
                 changed = 0
                 if len(match) > 0:
                     changed = 1
@@ -183,12 +182,12 @@ class ResponseHandler(threading.Thread):
 
             changes = untagged[untagged['changed'] == 1]
             if len(changes) > 0:
-                self.logger.debug('untagged orders: changes=%s', changes)
+                self.logger.debug('untagged orders: changes=%s', changes.to_string())
                 self.logger.debug('sending changes to kdb')
                 self.send_changes(changes)
-                self.logger.debug('before update changes: orders=%s', self.orders)
+                self.logger.debug('before update changes: orders=%s', self.orders.to_string())
                 self.orders.update(changes)
-                self.logger.debug('after update changes: orders=%s', self.orders)
+                self.logger.debug('after update changes: orders=%s', self.orders.to_string())
 
         except Exception, e:
             self.logger.error(e)
@@ -202,7 +201,7 @@ class ResponseHandler(threading.Thread):
             # changes = changes.set_index(['sym', 'qid'])
             changes = changes.drop(['tagged', 'changed'], axis=1)
             self.logger.debug('changes dtypes=%s', changes.dtypes)
-            self.logger.debug('send changes: changes=%s', changes)
+            self.logger.debug('send changes: changes=%s', changes.to_string())
             changes.meta = self.table_meta
 
             if self.q('set', np.string_('my_changes'), changes) == 'my_changes':

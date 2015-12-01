@@ -39,7 +39,7 @@ class OrderStatusEvent(Event):
         self.orders = orders
 
     def __str__(self):
-        return "OrderStatusEvent: Content = %s" % self.orders
+        return "OrderStatusEvent: Content = %s" % self.orders.to_string()
 
 
 class NewOrdersEvent(Event):
@@ -49,5 +49,5 @@ class NewOrdersEvent(Event):
         self.update_kdb = update_kdb
 
     def __str__(self):
-        return "OrderStatusEvent: NewOrders = %s" % self.new_orders
+        return "OrderStatusEvent: update_kdb=%s,  NewOrders=%s" % (self.update_kdb, self.new_orders.to_string)
 
