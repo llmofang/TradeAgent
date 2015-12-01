@@ -8,7 +8,8 @@ from Event import OrderStatusEvent
 import pandas as pd
 
 class TradeHandler(threading.Thread):
-    def __init__(self, buy_cmd, sell_cmd, cancel_cmd, check_cmd, events_in, events_out, logger, auto_check_orders=False):
+    def __init__(self, buy_cmd, sell_cmd, cancel_cmd, check_cmd, events_in, events_out,
+                 logger, auto_check_orders=False):
         super(TradeHandler, self).__init__()
         self._stop = threading.Event()
 
