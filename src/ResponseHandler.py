@@ -217,8 +217,10 @@ class ResponseHandler(threading.Thread):
     def run(self):
         self.get_all_orders()
         while True:
+            event = None
             try:
-                event = self.events.get()
+                while self.events.qsize() > 0:
+                    event = self.events.get()
             except Queue.Empty:
                 print('queue empty error!')
             else:
