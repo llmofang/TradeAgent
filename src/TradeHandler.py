@@ -86,7 +86,7 @@ class TradeHandler(threading.Thread):
                 new = datetime.now() + timedelta(minutes=5)
                 old = datetime.now() - timedelta(minutes=5)
                 new_orders = new_orders.between_time(old, new)
-                self.logger.debug('get recent orders: new_orders = %s', new_orders)
+                self.logger.debug('get recent orders: new_orders = %s', new_orders.to_string())
 
                 if len(new_orders) > 0:
                     columns_drop = [u'证券名称', u'委托类型', u'资金帐号', u'返回信息', 'Unnamed: 16', 'Unnamed: 17']
@@ -104,15 +104,18 @@ class TradeHandler(threading.Thread):
 
     def check_orders(self):
         orders = self.get_orders()
-        if len(orders) > 0:
-            event = OrderStatusEvent(orders)
-            self.logger.debug('generate OrderStatusEvent=%s', event)
-            self.events_out.put(event)
-            qsize = self.events_out.qsize()
-            if qsize > 3:
-                self.logger.error('events queue size is too large: qsize=%i', qsize)
-            else:
-                self.logger.debug('events queue size: qsize=%i', qsize)
+        try:
+            if len(orders) > 0:
+                event = OrderStatusEvent(orders)
+                self.logger.debug('generate OrderStatusEvent=%s', event)
+                self.events_out.put(event)
+                qsize = self.events_out.qsize()
+                if qsize > 3:
+                    self.logger.error('events queue size is too large: qsize=%i', qsize)
+                else:
+                    self.logger.debug('events queue size: qsize=%i', qsize)
+        except Exception, e:
+            self.logger.info(e)
 
     def execute_cmd(self, cmd):
         for line in cmd:
