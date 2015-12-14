@@ -141,6 +141,7 @@ class ResponseHandler(threading.Thread):
             # 从new_orders中查找出没有匹配委托编号的记录
             to_tag = new_orders[new_orders[u'申请编号'].isin(self.orders['entrustno']) == False ]
             to_tag['tagged'] = np.zeros(len(to_tag))
+            self.logger.debug('to_tag = %s', to_tag.to_string())
             # to_tag = to_tag.set_index([u'委托时间'])
             for i in range(len(untagged)):
                 old = untagged['time'].iloc[i] - timedelta(minutes=2)
@@ -148,13 +149,15 @@ class ResponseHandler(threading.Thread):
 
                 # 时间上匹配上下2分钟的
                 time_match = to_tag.between_time(old, new)
+                self.logger.debug('time_match = %s', time_match.to_string())
                 self.logger.debug('time_match: dtypes = %s', time_match.dtypes)
                 match = time_match[(time_match[u'证券代码'] == int(untagged['stockcode'].iloc[i])) &
                                    (time_match[u'委托价格'] == untagged['askprice'].iloc[i]) &
                                    (time_match[u'委托数量'] == abs(int(untagged['askvol'].iloc[i]))) &
-                                   (time_match[u'买卖'] == (u'买入' if int(untagged['askvol'].iloc[i]) > 0 else u'卖出')) &
+                                   (time_match[u'买卖'] == (u'证券买入' if int(untagged['askvol'].iloc[i]) > 0 else u'证券卖出')) &
                                    (time_match['tagged'] == 0)]
                 self.logger.debug('find order match untagged order: match=%s', match.to_string())
+                match = match.sort_index(ascending=True)
                 changed = 0
                 if len(match) > 0:
                     changed = 1
