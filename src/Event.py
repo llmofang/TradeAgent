@@ -51,3 +51,20 @@ class NewOrdersEvent(Event):
     def __str__(self):
         return "OrderStatusEvent: update_kdb=%s,  NewOrders=%s" % (self.update_kdb, self.new_orders.to_string)
 
+
+class MarketEvent(Event):
+    def __init__(self, market):
+        self.type = 'MarketEvent'
+        self.market = market
+
+    def __str__(self):
+        return "MarketEvent: Market = %s" % (self.market.to_string())
+
+
+class TransactionEvent(Event):
+    def __init__(self, transaction):
+        self.type = 'TransactionEvent'
+        self.transaction = transaction
+
+    def __str__(self):
+        return "MarketEvent: Market = %s" % (self.transaction.to_string())
