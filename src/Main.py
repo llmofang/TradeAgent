@@ -1,7 +1,8 @@
 from Queue import Queue
 from TradeHandler import TradeHandler
 from RequestHandler import RequestHandler
-from ResponseHandler import ResponseHandler
+from ZXResponseHandler import ZXResponseHandler
+
 from qpython import qconnection
 from MyUtils import read_commands
 import sys
@@ -100,7 +101,7 @@ def run(cancel, check, order):
                                      events_trade, events_response, logger, check)
         request_handler = RequestHandler(q_req, events_response, events_trade, q_request_table, q_sub_users,
                                          logger, events_types)
-        response_handler = ResponseHandler(q_res, events_response, q_response_table, logger)
+        response_handler = ZXResponseHandler(q_res, events_response, q_response_table, logger)
 
         response_handler.start()
         trade_handler.start()
