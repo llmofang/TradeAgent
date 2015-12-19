@@ -8,12 +8,18 @@ import sys
 import logging
 import logging.config
 import getopt
+import ConfigParser
 
-BUY_LIST_FILE = 'cmd\\buyStockList.txt'
-SELL_LIST_FILE = 'cmd\\sellStockList.txt'
-CHECK_LIST_FILE = 'cmd\\checkStockList.txt'
-CANCEL_LIST_FILE = 'cmd\\cancelOrderList.txt'
 
+cf = ConfigParser.ConfigParser()
+cf.read("tradeagent.conf")
+
+broker = cf.get("cmd_mode", "broker")
+
+buy_cmd_file = 'cmd\\%s\\buyStockList.txt' % broker
+sell_cmd_file = 'cmd\\%s\\sellStockList.txt' % broker
+check_cmd_file = 'cmd\\%s\\checkStockList.txt' % broker
+cancel_cmd_file = 'cmd\\%s\\cancelOrderList.txt' % broker
 
 def usage():
     print 'Main.py usage:'
@@ -69,17 +75,18 @@ def run(cancel, check, order):
     logger.debug('check=%s', check)
     logger.debug('events_types=%s', events_types)
 
-    buy_cmd = read_commands(BUY_LIST_FILE)
-    sell_cmd = read_commands(SELL_LIST_FILE)
-    cancel_cmd = read_commands(CANCEL_LIST_FILE)
-    check_cmd = read_commands(CHECK_LIST_FILE)
+    buy_cmd = read_commands(buy_cmd_file)
+    sell_cmd = read_commands(sell_cmd_file)
+    cancel_cmd = read_commands(cancel_cmd_file)
+    check_cmd = read_commands(check_cmd_file)
 
     events_trade = Queue()
     events_response = Queue()
-    q_host = '183.136.130.82'
-    q_port = 15031
-    q_request_table = 'trade1'
-    q_response_table = 'trade2'
+    q_host = cf.get("db", "host")
+    q_port = cf.getint("db", "port")
+    q_request_table = cf.get("db", "request_table")
+    q_response_table = cf.get("db", "response_table")
+    # todo
     q_sub_users = []
 
     q_req = qconnection.QConnection(host=q_host, port=q_port, pandas=True)
