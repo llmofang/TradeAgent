@@ -89,7 +89,7 @@ class TradeHandler(threading.Thread):
                 self.logger.debug('get recent orders: new_orders = %s', new_orders.to_string())
 
                 if len(new_orders) > 0:
-                    columns_drop = [u'证券名称', u'委托类型', u'资金帐号', u'返回信息', 'Unnamed: 16', 'Unnamed: 17']
+                    columns_drop = [u'委托日期', u'证券名称', u'委托类型', u'资金帐号', u'交易市场', u'股东账户' u'返回信息', 'Unnamed: 16', 'Unnamed: 17']
                     for column in columns_drop:
                         if column in new_orders.columns:
                             self.logger.debug('droping unused columns: column=%s', column)
