@@ -9,7 +9,9 @@ class ZXResponseHandler(ResponseHandler):
 
     def __init__(self, q, events, response_table, logger):
         super(ZXResponseHandler, self).__init__(q, events, response_table, logger)
-        self.status = {u'未报': 0, u'已报': 1, u'未成': 2, u'已报待撤': 3,  u'已成': 4,  u'已撤': 5,  u'废单': 6}
+        # todo 未报 已报 未成 已报待撤 暂未捕获
+        # 部撤是部分成交,部分已撤
+        self.status = {u'未报': 0, u'已报': 1, u'未成': 2, u'已报待撤': 3,  u'已成': 4,  u'已撤': 5, u'部撤': 5,  u'废单': 6}
 
 
     # 更新已标记了委托号且未完成的委托
@@ -30,13 +32,16 @@ class ZXResponseHandler(ResponseHandler):
                     if tagged_unfinished['bidvol'].iloc[i] != ratio * match[u'成交数量'].iloc[0]:
                         tagged_unfinished['bidvol'].iloc[i] = ratio * match[u'成交数量'].iloc[0]
                         changed = 1
+                    # 没有已撤数量
+                    # if tagged_unfinished['withdraw'].iloc[i] != match[u'已撤数量'].iloc[0]:
+                    #     tagged_unfinished['withdraw'].iloc[i] = match[u'已撤数量'].iloc[0]
+                    #     changed = 1
                     # TODO
-                    if tagged_unfinished['withdraw'].iloc[i] != match[u'已撤数量'].iloc[0]:
-                        tagged_unfinished['withdraw'].iloc[i] = match[u'已撤数量'].iloc[0]
-                        changed = 1
-                    # TODO
-                    if tagged_unfinished['status'].iloc[i] != self.status[match[u'委托状态'].iloc[0]]:
-                        tagged_unfinished['status'].iloc[i] = self.status[match[u'委托状态'].iloc[0]]
+                    status = match[u'备注'].iloc[0]
+                    status = status[:2]
+                    self.logger.debug('status = %s', status)
+                    if tagged_unfinished['status'].iloc[i] != self.status[status]:
+                        tagged_unfinished['status'].iloc[i] = self.status[status]
                         changed = 1
                     tagged_unfinished['changed'].iloc[i] = changed
             changes = tagged_unfinished[tagged_unfinished['changed'] == 1]
@@ -77,7 +82,7 @@ class ZXResponseHandler(ResponseHandler):
                 match = time_match[(time_match[u'证券代码'] == int(untagged['stockcode'].iloc[i])) &
                                    (time_match[u'委托价格'] == untagged['askprice'].iloc[i]) &
                                    (time_match[u'委托数量'] == abs(int(untagged['askvol'].iloc[i]))) &
-                                   (time_match[u'买卖'] == (u'证券买入' if int(untagged['askvol'].iloc[i]) > 0 else u'证券卖出')) &
+                                   (time_match[u'操作'].find(u'买' if int(untagged['askvol'].iloc[i]) > 0 else u'卖')) &
                                    (time_match['tagged'] == 0)]
                 self.logger.debug('find order match untagged order: match=%s', match.to_string())
                 match = match.sort_index(ascending=True)
@@ -96,11 +101,13 @@ class ZXResponseHandler(ResponseHandler):
                     ratio = 1 if untagged['askvol'].iloc[i] > 0 else -1
                     if untagged['bidvol'].iloc[i] != ratio * match[u'成交数量'].iloc[0]:
                         untagged['bidvol'].iloc[i] = ratio * match[u'成交数量'].iloc[0]
-                    if untagged['withdraw'].iloc[i] != match[u'已撤数量'].iloc[0]:
-                        untagged['withdraw'].iloc[i] = match[u'已撤数量'].iloc[0]
+                    # if untagged['withdraw'].iloc[i] != match[u'已撤数量'].iloc[0]:
+                    #     untagged['withdraw'].iloc[i] = match[u'已撤数量'].iloc[0]
                     # TODO
-                    if untagged['status'].iloc[i] != self.status[match[u'委托状态'].iloc[0]]:
-                        untagged['status'].iloc[i] = self.status[match[u'委托状态'].iloc[0]]
+                    status = match[u'备注'].iloc[0]
+                    status = status[:2]
+                    if untagged['status'].iloc[i] != self.status[status]:
+                        untagged['status'].iloc[i] = self.status[status]
                     to_tag.loc[to_tag[u'合同编号'] == entrustno, 'tagged'] = 1
                     untagged['changed'].iloc[i] = changed
 
