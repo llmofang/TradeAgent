@@ -81,6 +81,7 @@ class TradeHandler(threading.Thread):
         new_orders = pd.DataFrame([])
         try:
             new_orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'委托时间'])
+            self.logger.debug('got new orders from clipboard, new_orders = %s', new_orders.to_string())
             if len(new_orders) > 0:
                 new_orders = new_orders.set_index([u'委托时间'])
                 new = datetime.now() + timedelta(minutes=5)
