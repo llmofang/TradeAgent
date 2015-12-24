@@ -1,4 +1,4 @@
-# -*- coding: cp936 -*-
+# -*- coding: utf-8 -*-
 import numpy as np
 from datetime import datetime
 from datetime import timedelta
