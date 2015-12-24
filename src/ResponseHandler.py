@@ -22,6 +22,7 @@ class ResponseHandler(threading.Thread):
         # self.status = {u'未报': 0, u'已报': 1, u'未成': 2, u'已报待撤': 3,  u'已成': 4,  u'已撤': 5,  u'废单': 6}
         self.logger = logger
         pd.set_option('mode.chained_assignment', None)
+        # pd.set_option('display.encoding', 'gbk')
 
     def stop(self):
         self._stop.set()

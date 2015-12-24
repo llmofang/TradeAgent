@@ -5,10 +5,10 @@ from datetime import timedelta
 from ResponseHandler import ResponseHandler
 
 
-class ZXResponseHandler(ResponseHandler):
+class HTResponseHandler(ResponseHandler):
 
     def __init__(self, q, events, response_table, logger):
-        super(ZXResponseHandler, self).__init__(q, events, response_table, logger)
+        super(HTResponseHandler, self).__init__(q, events, response_table, logger)
         # todo 未报 已报 未成 已报待撤 暂未捕获
         # 部撤是部分成交,部分已撤
         self.status = {u'未报': 0, u'已报': 1, u'未成': 2, u'已报待撤': 3,  u'已成': 4,  u'已撤': 5, u'部撤': 5,  u'废单': 6}
@@ -68,6 +68,8 @@ class ZXResponseHandler(ResponseHandler):
             # 从new_orders中查找出没有匹配委托编号的记录
             to_tag = new_orders[new_orders[u'合同编号'].isin(self.orders['entrustno']) == False ]
             to_tag['tagged'] = np.zeros(len(to_tag))
+            to_tag[u'买卖'] = to_tag[u'操作'].apply(lambda x: u'证券买入' if x.find(u'买') else u'证券卖出')
+            to_tag[u'委托状态'] = to_tag[u'备注'].str[:2]
             self.logger.debug('to_tag = %s', to_tag.to_string())
             # to_tag = to_tag.set_index([u'委托时间'])
             for i in range(len(untagged)):
@@ -82,7 +84,7 @@ class ZXResponseHandler(ResponseHandler):
                 match = time_match[(time_match[u'证券代码'] == int(untagged['stockcode'].iloc[i])) &
                                    (time_match[u'委托价格'] == untagged['askprice'].iloc[i]) &
                                    (time_match[u'委托数量'] == abs(int(untagged['askvol'].iloc[i]))) &
-                                   (time_match[u'操作'].find(u'买' if int(untagged['askvol'].iloc[i]) > 0 else u'卖')) &
+                                   (time_match[u'买卖'] == (u'证券买入' if int(untagged['askvol'].iloc[i]) > 0 else u'证券卖出')) &
                                    (time_match['tagged'] == 0)]
                 self.logger.debug('find order match untagged order: match=%s', match.to_string())
                 match = match.sort_index(ascending=True)

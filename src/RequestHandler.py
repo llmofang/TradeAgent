@@ -70,7 +70,7 @@ class RequestHandler(threading.Thread):
         if len(df_new_requests) > 0:
             update_kdb = True if 'OrderEvent' in self.event_types else False
             new_order_event = NewOrdersEvent(df_new_requests, update_kdb)
-            self.logger.debug('generate NewOrdersEvent=', new_order_event)
+            self.logger.debug('generate NewOrdersEvent=%s', new_order_event)
             self.events_response.put(new_order_event)
             df_new_requests = df_new_requests.reset_index()
             event = []
