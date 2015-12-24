@@ -19,7 +19,7 @@ class ResponseHandler(threading.Thread):
         self.q = q
         self.events = events
         self.response_table = response_table
-        # self.status = {u'Î´±¨': 0, u'ÒÑ±¨': 1, u'Î´³É': 2, u'ÒÑ±¨´ı³·': 3,  u'ÒÑ³É': 4,  u'ÒÑ³·': 5,  u'·Ïµ¥': 6}
+        # self.status = {u'æœªæŠ¥': 0, u'å·²æŠ¥': 1, u'æœªæˆ': 2, u'å·²æŠ¥å¾…æ’¤': 3,  u'å·²æˆ': 4,  u'å·²æ’¤': 5,  u'åºŸå•': 6}
         self.logger = logger
         pd.set_option('mode.chained_assignment', None)
         # pd.set_option('display.encoding', 'gbk')
@@ -34,7 +34,7 @@ class ResponseHandler(threading.Thread):
         query = 'select from ' + self.response_table
         self.orders = self.q(query)
         self.logger.debug('get all orders: orders=%s', self.orders.to_string())
-        # TODO ÕâÑùÓĞÎÊÌâ°É£¿£¿£¿£¿
+        # TODO è¿™æ ·æœ‰é—®é¢˜å§ï¼Ÿï¼Ÿï¼Ÿï¼Ÿ
         # self.orders.reset_index()
         self.table_meta = self.orders.meta
         self.logger.debug('table meta= %s', self.table_meta)
@@ -71,7 +71,7 @@ class ResponseHandler(threading.Thread):
         new_orders.meta = self.table_meta
 
         if event.update_kdb:
-            # todo ³·µ¥µÄÎŞĞè¸üĞÂ
+            # todo æ’¤å•çš„æ— éœ€æ›´æ–°
             try:
                 if self.q('set', np.string_('my_new_orders'), new_orders) == 'my_new_orders':
                     self.logger.info('set new orders to my_new_orders successful!')
@@ -95,12 +95,12 @@ class ResponseHandler(threading.Thread):
         except Exception, e:
             self.logger.error('Exception: %s', e)
 
-    # ¸üĞÂÒÑ±ê¼ÇÁËÎ¯ÍĞºÅÇÒÎ´Íê³ÉµÄÎ¯ÍĞ
+    # æ›´æ–°å·²æ ‡è®°äº†å§”æ‰˜å·ä¸”æœªå®Œæˆçš„å§”æ‰˜
     @abstractmethod
     def tagged_changes(self, new_orders):
         raise NotImplementedError("Should implement tagged_changes()")
 
-    # ±ê¼ÇÎ¯ÍĞºÅ£¬²¢¸üĞÂ³É½»ĞÅÏ¢
+    # æ ‡è®°å§”æ‰˜å·ï¼Œå¹¶æ›´æ–°æˆäº¤ä¿¡æ¯
     @abstractmethod
     def untagged_changes(self, new_orders, nearest_min):
         raise NotImplementedError("Should implement untagged_changes()")

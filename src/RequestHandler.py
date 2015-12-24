@@ -50,7 +50,7 @@ class RequestHandler(threading.Thread):
                     if isinstance(message.data[2], DataFrame):
                         df_new_requests = message.data[2]
                     elif isinstance(message.data[2], list):
-                        # TODO �д��󡣡��߲�ͨ
+                        # TODO 有错误。。走不通
                         # df_new_requests = pd.concat(message.data[2], axis=1)
                         # df_new_requests.loc[0] = message.data[2]
                         # df_new_requests[['entrustno', 'stockcode', 'askvol', 'bidvol', 'withdraw', 'status']] = \

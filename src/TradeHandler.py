@@ -88,17 +88,17 @@ class TradeHandler(threading.Thread):
         self.execute_cmd(self.check_cmd)
         new_orders = pd.DataFrame([])
         try:
-            new_orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'委托时间'], nrows=50)
+            new_orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'濮旀墭鏃堕棿'], nrows=50)
             self.logger.debug('got new orders from clipboard, new_orders = %s', new_orders.to_string())
             if len(new_orders) > 0:
-                new_orders = new_orders.set_index([u'委托时间'])
+                new_orders = new_orders.set_index([u'濮旀墭鏃堕棿'])
                 new = datetime.now() + timedelta(minutes=5)
                 old = datetime.now() - timedelta(minutes=5)
                 new_orders = new_orders.between_time(old, new)
                 self.logger.debug('get recent orders: new_orders = %s', new_orders.to_string())
 
                 if len(new_orders) > 0:
-                    columns_drop = [u'委托日期', u'证券名称', u'委托类型', u'资金帐号', u'交易市场', u'股东账户' u'返回信息', 'Unnamed: 16', 'Unnamed: 17']
+                    columns_drop = [u'濮旀墭鏃ユ湡', u'璇佸埜鍚嶇О', u'濮旀墭绫诲瀷', u'璧勯噾甯愬彿', u'浜ゆ槗甯傚満', u'鑲′笢璐︽埛' u'杩斿洖淇℃伅', 'Unnamed: 16', 'Unnamed: 17']
                     for column in columns_drop:
                         if column in new_orders.columns:
                             self.logger.debug('droping unused columns: column=%s', column)

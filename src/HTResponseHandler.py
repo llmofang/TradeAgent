@@ -9,35 +9,35 @@ class HTResponseHandler(ResponseHandler):
 
     def __init__(self, q, events, response_table, logger):
         super(HTResponseHandler, self).__init__(q, events, response_table, logger)
-        # todo Î´±¨ ÒÑ±¨ Î´³É ÒÑ±¨´ı³· ÔİÎ´²¶»ñ
-        # ²¿³·ÊÇ²¿·Ö³É½»,²¿·ÖÒÑ³·
-        self.status = {u'Î´±¨': 0, u'ÒÑ±¨': 1, u'Î´³É': 2, u'ÒÑ±¨´ı³·': 3,  u'ÒÑ³É': 4,  u'ÒÑ³·': 5, u'²¿³·': 5,  u'·Ïµ¥': 6}
+        # todo æœªæŠ¥ å·²æŠ¥ æœªæˆ å·²æŠ¥å¾…æ’¤ æš‚æœªæ•è·
+        # éƒ¨æ’¤æ˜¯éƒ¨åˆ†æˆäº¤,éƒ¨åˆ†å·²æ’¤
+        self.status = {u'æœªæŠ¥': 0, u'å·²æŠ¥': 1, u'æœªæˆ': 2, u'å·²æŠ¥å¾…æ’¤': 3,  u'å·²æˆ': 4,  u'å·²æ’¤': 5, u'éƒ¨æ’¤': 5,  u'åºŸå•': 6}
 
 
-    # ¸üĞÂÒÑ±ê¼ÇÁËÎ¯ÍĞºÅÇÒÎ´Íê³ÉµÄÎ¯ÍĞ
+    # æ›´æ–°å·²æ ‡è®°äº†å§”æ‰˜å·ä¸”æœªå®Œæˆçš„å§”æ‰˜
     def tagged_changes(self, new_orders):
         try:
-            # Î´Íê³ÉµÄÎ¯ÍĞµÄstatus<4
+            # æœªå®Œæˆçš„å§”æ‰˜çš„status<4
             tagged_unfinished = self.orders[(self.orders['tagged'] == 1) &
                                             (self.orders['status'] < 4)]
             self.logger.debug('tagged and unfinished orders: tagged_unfinished=%s', tagged_unfinished)
             for i in range(len(tagged_unfinished)):
-                match = new_orders[new_orders[u'ºÏÍ¬±àºÅ'] == tagged_unfinished['entrustno'].iloc[i]]
+                match = new_orders[new_orders[u'åˆåŒç¼–å·'] == tagged_unfinished['entrustno'].iloc[i]]
                 changed = 0
                 if len(match) > 0:
-                    if tagged_unfinished['bidprice'].iloc[i] != match[u'³É½»¾ù¼Û'].iloc[0]:
-                        tagged_unfinished['bidprice'].iloc[i] = match[u'³É½»¾ù¼Û'].iloc[0]
+                    if tagged_unfinished['bidprice'].iloc[i] != match[u'æˆäº¤å‡ä»·'].iloc[0]:
+                        tagged_unfinished['bidprice'].iloc[i] = match[u'æˆäº¤å‡ä»·'].iloc[0]
                         changed = 1
                     ratio = 1 if tagged_unfinished['askvol'].iloc[i] > 0 else -1
-                    if tagged_unfinished['bidvol'].iloc[i] != ratio * match[u'³É½»ÊıÁ¿'].iloc[0]:
-                        tagged_unfinished['bidvol'].iloc[i] = ratio * match[u'³É½»ÊıÁ¿'].iloc[0]
+                    if tagged_unfinished['bidvol'].iloc[i] != ratio * match[u'æˆäº¤æ•°é‡'].iloc[0]:
+                        tagged_unfinished['bidvol'].iloc[i] = ratio * match[u'æˆäº¤æ•°é‡'].iloc[0]
                         changed = 1
-                    # Ã»ÓĞÒÑ³·ÊıÁ¿
-                    # if tagged_unfinished['withdraw'].iloc[i] != match[u'ÒÑ³·ÊıÁ¿'].iloc[0]:
-                    #     tagged_unfinished['withdraw'].iloc[i] = match[u'ÒÑ³·ÊıÁ¿'].iloc[0]
+                    # æ²¡æœ‰å·²æ’¤æ•°é‡
+                    # if tagged_unfinished['withdraw'].iloc[i] != match[u'å·²æ’¤æ•°é‡'].iloc[0]:
+                    #     tagged_unfinished['withdraw'].iloc[i] = match[u'å·²æ’¤æ•°é‡'].iloc[0]
                     #     changed = 1
                     # TODO
-                    status = match[u'±¸×¢'].iloc[0]
+                    status = match[u'å¤‡æ³¨'].iloc[0]
                     status = status[:2]
                     self.logger.debug('status = %s', status)
                     if tagged_unfinished['status'].iloc[i] != self.status[status]:
@@ -56,35 +56,35 @@ class HTResponseHandler(ResponseHandler):
         except Exception, e:
             self.logger.error(e)
 
-    # ±ê¼ÇÎ¯ÍĞºÅ£¬²¢¸üĞÂ³É½»ĞÅÏ¢
+    # æ ‡è®°å§”æ‰˜å·ï¼Œå¹¶æ›´æ–°æˆäº¤ä¿¡æ¯
     def untagged_changes(self, new_orders, nearest_min):
         try:
 
-            # ´ÓordersÖĞ²éÕÒ³ö×î½üÈı·ÖÖÓÒÔÄÚ£¨¸üÔçÊ±¼äµÄ²»×ö´¦Àí£©£¬Ã»ÓĞ±»±ê¼ÇµÄÎ¯ÍĞ¼ÇÂ¼
+            # ä»ordersä¸­æŸ¥æ‰¾å‡ºæœ€è¿‘ä¸‰åˆ†é’Ÿä»¥å†…ï¼ˆæ›´æ—©æ—¶é—´çš„ä¸åšå¤„ç†ï¼‰ï¼Œæ²¡æœ‰è¢«æ ‡è®°çš„å§”æ‰˜è®°å½•
             nearest = datetime.now() - timedelta(minutes=nearest_min)
             untagged = self.orders[(self.orders['tagged'] == 0) & (self.orders['time'] > nearest)]
 
             self.logger.debug('untagged orders: untagged=%s', untagged.to_string())
-            # ´Ónew_ordersÖĞ²éÕÒ³öÃ»ÓĞÆ¥ÅäÎ¯ÍĞ±àºÅµÄ¼ÇÂ¼
-            to_tag = new_orders[new_orders[u'ºÏÍ¬±àºÅ'].isin(self.orders['entrustno']) == False ]
+            # ä»new_ordersä¸­æŸ¥æ‰¾å‡ºæ²¡æœ‰åŒ¹é…å§”æ‰˜ç¼–å·çš„è®°å½•
+            to_tag = new_orders[new_orders[u'åˆåŒç¼–å·'].isin(self.orders['entrustno']) == False ]
             to_tag['tagged'] = np.zeros(len(to_tag))
-            to_tag[u'ÂòÂô'] = to_tag[u'²Ù×÷'].apply(lambda x: u'Ö¤È¯ÂòÈë' if x.find(u'Âò') else u'Ö¤È¯Âô³ö')
-            to_tag[u'Î¯ÍĞ×´Ì¬'] = to_tag[u'±¸×¢'].str[:2]
+            to_tag[u'ä¹°å–'] = to_tag[u'æ“ä½œ'].apply(lambda x: u'è¯åˆ¸ä¹°å…¥' if x.find(u'ä¹°') else u'è¯åˆ¸å–å‡º')
+            to_tag[u'å§”æ‰˜çŠ¶æ€'] = to_tag[u'å¤‡æ³¨'].str[:2]
             self.logger.debug('to_tag = %s', to_tag.to_string())
-            # to_tag = to_tag.set_index([u'Î¯ÍĞÊ±¼ä'])
+            # to_tag = to_tag.set_index([u'å§”æ‰˜æ—¶é—´'])
             for i in range(len(untagged)):
                 old = untagged['time'].iloc[i] - timedelta(minutes=2)
                 new = untagged['time'].iloc[i] + timedelta(minutes=2)
 
-                # Ê±¼äÉÏÆ¥ÅäÉÏÏÂ2·ÖÖÓµÄ
+                # æ—¶é—´ä¸ŠåŒ¹é…ä¸Šä¸‹2åˆ†é’Ÿçš„
                 time_match = to_tag.between_time(old, new)
                 self.logger.debug('time_match = %s', time_match.to_string())
                 self.logger.debug('time_match: dtypes = %s', time_match.dtypes)
                 # TODO
-                match = time_match[(time_match[u'Ö¤È¯´úÂë'] == int(untagged['stockcode'].iloc[i])) &
-                                   (time_match[u'Î¯ÍĞ¼Û¸ñ'] == untagged['askprice'].iloc[i]) &
-                                   (time_match[u'Î¯ÍĞÊıÁ¿'] == abs(int(untagged['askvol'].iloc[i]))) &
-                                   (time_match[u'ÂòÂô'] == (u'Ö¤È¯ÂòÈë' if int(untagged['askvol'].iloc[i]) > 0 else u'Ö¤È¯Âô³ö')) &
+                match = time_match[(time_match[u'è¯åˆ¸ä»£ç '] == int(untagged['stockcode'].iloc[i])) &
+                                   (time_match[u'å§”æ‰˜ä»·æ ¼'] == untagged['askprice'].iloc[i]) &
+                                   (time_match[u'å§”æ‰˜æ•°é‡'] == abs(int(untagged['askvol'].iloc[i]))) &
+                                   (time_match[u'ä¹°å–'] == (u'è¯åˆ¸ä¹°å…¥' if int(untagged['askvol'].iloc[i]) > 0 else u'è¯åˆ¸å–å‡º')) &
                                    (time_match['tagged'] == 0)]
                 self.logger.debug('find order match untagged order: match=%s', match.to_string())
                 match = match.sort_index(ascending=True)
@@ -95,22 +95,22 @@ class HTResponseHandler(ResponseHandler):
                         self.logger.debug('Perfect match row!')
                     else:
                         self.logger.info('Find more than 1 for row!')
-                    entrustno = match[u'ºÏÍ¬±àºÅ'].iloc[0]
+                    entrustno = match[u'åˆåŒç¼–å·'].iloc[0]
                     if untagged['entrustno'].iloc[i] != entrustno:
                         untagged['entrustno'].iloc[i] = entrustno
-                    if untagged['bidprice'].iloc[i] != match[u'³É½»¾ù¼Û'].iloc[0]:
-                        untagged['bidprice'].iloc[i] = match[u'³É½»¾ù¼Û'].iloc[0]
+                    if untagged['bidprice'].iloc[i] != match[u'æˆäº¤å‡ä»·'].iloc[0]:
+                        untagged['bidprice'].iloc[i] = match[u'æˆäº¤å‡ä»·'].iloc[0]
                     ratio = 1 if untagged['askvol'].iloc[i] > 0 else -1
-                    if untagged['bidvol'].iloc[i] != ratio * match[u'³É½»ÊıÁ¿'].iloc[0]:
-                        untagged['bidvol'].iloc[i] = ratio * match[u'³É½»ÊıÁ¿'].iloc[0]
-                    # if untagged['withdraw'].iloc[i] != match[u'ÒÑ³·ÊıÁ¿'].iloc[0]:
-                    #     untagged['withdraw'].iloc[i] = match[u'ÒÑ³·ÊıÁ¿'].iloc[0]
+                    if untagged['bidvol'].iloc[i] != ratio * match[u'æˆäº¤æ•°é‡'].iloc[0]:
+                        untagged['bidvol'].iloc[i] = ratio * match[u'æˆäº¤æ•°é‡'].iloc[0]
+                    # if untagged['withdraw'].iloc[i] != match[u'å·²æ’¤æ•°é‡'].iloc[0]:
+                    #     untagged['withdraw'].iloc[i] = match[u'å·²æ’¤æ•°é‡'].iloc[0]
                     # TODO
-                    status = match[u'±¸×¢'].iloc[0]
+                    status = match[u'å¤‡æ³¨'].iloc[0]
                     status = status[:2]
                     if untagged['status'].iloc[i] != self.status[status]:
                         untagged['status'].iloc[i] = self.status[status]
-                    to_tag.loc[to_tag[u'ºÏÍ¬±àºÅ'] == entrustno, 'tagged'] = 1
+                    to_tag.loc[to_tag[u'åˆåŒç¼–å·'] == entrustno, 'tagged'] = 1
                     untagged['changed'].iloc[i] = changed
 
                 else:
