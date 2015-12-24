@@ -76,7 +76,15 @@ class TradeHandler(threading.Thread):
         else:
             print('Unvalid cancel order command!')
 
+    def check_mouse_position(self):
+        while True:
+            X, Y = pyautogui.size()
+            x, y = pyautogui.position()
+            if (x < X * 0.8) and (y < Y * 0.8):
+                break
+
     def get_orders(self):
+        self.check_mouse_position()
         self.execute_cmd(self.check_cmd)
         new_orders = pd.DataFrame([])
         try:
