@@ -102,7 +102,12 @@ def run(cancel, check, order):
                                      events_trade, events_response, logger, check)
         request_handler = RequestHandler(q_req, events_response, events_trade, q_request_table, q_sub_users,
                                          logger, events_types)
-        response_handler = HTResponseHandler(q_res, events_response, q_response_table, logger)
+        if broker == 'ht':
+            response_handler = HTResponseHandler(q_res, events_response, q_response_table, logger)
+        elif broker == 'zx':
+            response_handler = ZXResponseHandler(q_res, events_response, q_response_table, logger)
+        else:
+            logger.error('Unknown broker =%s', broker)
 
         response_handler.start()
         trade_handler.start()
