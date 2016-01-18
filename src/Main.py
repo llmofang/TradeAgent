@@ -20,12 +20,12 @@ broker = cf.get("cmd_mode", "broker")
 
 rz_stocks = cf.get("stocks", "rz_stocks").split(',')
 
-buy_cmd_file = 'cmd\\%s\\buyStockList.txt' % broker
-sell_cmd_file = 'cmd\\%s\\sellStockList.txt' % broker
-rz_buy_cmd_file = 'cmd\\%s\\rzbuyStockList.txt' % broker
-rz_sell_cmd_file = 'cmd\\%s\\rzsellStockList.txt' % broker
-check_cmd_file = 'cmd\\%s\\checkStockList.txt' % broker
-cancel_cmd_file = 'cmd\\%s\\cancelOrderList.txt' % broker
+buy_cmd_file = cf.get("cmd_mode", "buy_cmd_file")
+sell_cmd_file = cf.get("cmd_mode", "sell_cmd_file")
+rz_buy_cmd_file = cf.get("cmd_mode", "rz_buy_cmd_file")
+rz_sell_cmd_file = cf.get("cmd_mode", "rz_sell_cmd_file")
+check_cmd_file = cf.get("cmd_mode", "check_cmd_file")
+cancel_cmd_file = cf.get("cmd_mode", "cancel_cmd_file")
 
 
 
