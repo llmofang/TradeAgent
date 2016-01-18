@@ -18,10 +18,16 @@ cf.read("tradeagent.conf")
 
 broker = cf.get("cmd_mode", "broker")
 
+rz_stocks = cf.get("stocks", "rz_stocks").split(',')
+
 buy_cmd_file = 'cmd\\%s\\buyStockList.txt' % broker
 sell_cmd_file = 'cmd\\%s\\sellStockList.txt' % broker
+rz_buy_cmd_file = 'cmd\\%s\\rzbuyStockList.txt' % broker
+rz_sell_cmd_file = 'cmd\\%s\\rzsellStockList.txt' % broker
 check_cmd_file = 'cmd\\%s\\checkStockList.txt' % broker
 cancel_cmd_file = 'cmd\\%s\\cancelOrderList.txt' % broker
+
+
 
 def usage():
     print 'Main.py usage:'
@@ -79,6 +85,8 @@ def run(cancel, check, order):
 
     buy_cmd = read_commands(buy_cmd_file)
     sell_cmd = read_commands(sell_cmd_file)
+    rz_buy_cmd = read_commands(rz_buy_cmd_file)
+    rz_sell_cmd = read_commands(rz_sell_cmd_file)
     cancel_cmd = read_commands(cancel_cmd_file)
     check_cmd = read_commands(check_cmd_file)
 
@@ -98,7 +106,7 @@ def run(cancel, check, order):
         q_req.open()
         q_res.open()
 
-        trade_handler = TradeHandler(buy_cmd, sell_cmd, cancel_cmd, check_cmd,
+        trade_handler = TradeHandler(buy_cmd, sell_cmd, rz_sell_cmd, rz_buy_cmd, rz_stocks,cancel_cmd, check_cmd,
                                      events_trade, events_response, logger, check)
         request_handler = RequestHandler(q_req, events_response, events_trade, q_request_table, q_sub_users,
                                          logger, events_types)

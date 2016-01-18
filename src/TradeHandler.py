@@ -7,14 +7,21 @@ from datetime import timedelta
 from Event import OrderStatusEvent
 import pandas as pd
 
+
 class TradeHandler(threading.Thread):
-    def __init__(self, buy_cmd, sell_cmd, cancel_cmd, check_cmd, events_in, events_out,
+    def __init__(self, buy_cmd, sell_cmd, rz_buy_cmd, rz_sell_cmd, rz_stocks, cancel_cmd, check_cmd, events_in, events_out,
                  logger, auto_check_orders=False):
         super(TradeHandler, self).__init__()
         self._stop = threading.Event()
 
         self.buy_cmd = buy_cmd
         self.sell_cmd = sell_cmd
+
+        self.rz_buy_cmd = rz_buy_cmd
+        self.rz_sell_cmd = rz_sell_cmd
+
+        self.rz_stocks = rz_stocks
+
         self.cancel_cmd = cancel_cmd
         self.check_cmd = check_cmd
         self.events_in = events_in
@@ -28,6 +35,14 @@ class TradeHandler(threading.Thread):
         self.sellPosStock = self.get_var_pos(sell_cmd, 'stockcode')
         self.sellPosPrice = self.get_var_pos(sell_cmd, 'stockprice')
         self.sellPosVol = self.get_var_pos(sell_cmd, 'stocknum')
+
+        self.rzbuyPosStock = self.get_var_pos(rz_buy_cmd, 'stockcode')
+        self.rzbuyPosPrice = self.get_var_pos(rz_buy_cmd, 'stockprice')
+        self.rzbuyPosVol = self.get_var_pos(rz_buy_cmd, 'stocknum')
+
+        self.rzsellPosStock = self.get_var_pos(rz_sell_cmd, 'stockcode')
+        self.rzsellPosPrice = self.get_var_pos(rz_sell_cmd, 'stockprice')
+        self.rzsellPosVol = self.get_var_pos(rz_sell_cmd, 'stocknum')
 
         self.cancelPosEntrust = self.get_var_pos(cancel_cmd, 'entrustno')
 
@@ -59,12 +74,20 @@ class TradeHandler(threading.Thread):
             cmd[posEntrust][2] = event.entrustno
 
     def buy_stock(self, event):
-        self.replace_order_var(self.buy_cmd, event, self.buyPosStock, self.buyPosPrice, self.buyPosVol)
-        self.execute_cmd(self.buy_cmd)
+        if event.symbol in self.rz_stocks:
+            self.replace_order_var(self.buy_cmd, event, self.buyPosStock, self.buyPosPrice, self.buyPosVol)
+            self.execute_cmd(self.buy_cmd)
+        else:
+            self.replace_order_var(self.rz_buy_cmd, event, self.rzbuyPosStock, self.rzbuyPosPrice, self.rzbuyPosVol)
+            self.execute_cmd(self.rz_buy_cmd)
 
     def sell_stock(self, event):
-        self.replace_order_var(self.sell_cmd, event, self.sellPosStock, self.sellPosPrice, self.sellPosVol)
-        self.execute_cmd(self.sell_cmd)
+        if event.symbol in self.rz_stocks:
+            self.replace_order_var(self.rz_sell_cmd, event, self.rzsellPosStock, self.rzsellPosPrice, self.rzsellPosVol)
+            self.execute_cmd(self.rz_sell_cmd)
+        else:
+            self.replace_order_var(self.buy_cmd, event, self.buyPosStock, self.buyPosPrice, self.buyPosVol)
+            self.execute_cmd(self.buy_cmd)
 
     def cancel_order(self, event):
         if event.entrustno > 0:
