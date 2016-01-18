@@ -1,0 +1,9 @@
+press f3 1 0 0
+press f6 1 0 0
+type stockcode 600001 0
+press tab 1 0 0.1
+type stockprice 35.4 0
+press tab 1 0 0
+type stocknum 1000 0
+press b 1 0 0
+press enter 1 0 0.3
