@@ -106,7 +106,7 @@ def run(cancel, check, order):
         q_req.open()
         q_res.open()
 
-        trade_handler = TradeHandler(buy_cmd, sell_cmd, rz_sell_cmd, rz_buy_cmd, rz_stocks,cancel_cmd, check_cmd,
+        trade_handler = TradeHandler(buy_cmd, sell_cmd, rz_buy_cmd, rz_sell_cmd, rz_stocks, cancel_cmd, check_cmd,
                                      events_trade, events_response, logger, check)
         request_handler = RequestHandler(q_req, events_response, events_trade, q_request_table, q_sub_users,
                                          logger, events_types)
