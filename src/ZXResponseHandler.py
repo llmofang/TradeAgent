@@ -74,7 +74,7 @@ class ZXResponseHandler(ResponseHandler):
                 match = time_match[(time_match[u'证券代码'] == int(untagged['stockcode'].iloc[i])) &
                                    (time_match[u'委托价格'] == untagged['askprice'].iloc[i]) &
                                    (time_match[u'委托数量'] == abs(int(untagged['askvol'].iloc[i]))) &
-                                   (time_match[u'买卖'] == (u'证券买入' if int(untagged['askvol'].iloc[i]) > 0 else u'证券卖出')) &
+                                   (time_match[u'买卖'] == (u'买入' if int(untagged['askvol'].iloc[i]) > 0 else u'卖出')) &
                                    (time_match['tagged'] == 0)]
                 self.logger.debug('find order match untagged order: match=%s', match.to_string())
                 match = match.sort_index(ascending=True)
