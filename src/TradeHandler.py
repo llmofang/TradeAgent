@@ -160,7 +160,7 @@ class TradeHandler(threading.Thread):
                 y = int(line[2])
                 t = float(line[3])
                 pyautogui.moveTo(x, y, t)
-                self.logger.debug('move to (%i, %i) %f', x, y, t)
+                self.logger.debug('move to (%i, %i) duration=%f', x, y, t)
 
             elif line[0] == 'click':
                 try:
@@ -189,7 +189,7 @@ class TradeHandler(threading.Thread):
             elif line[0] == 'type':
                 t = float(line[3])
                 pyautogui.typewrite(line[2])
-                self.logger.debug('type %s', line[2])
+                self.logger.debug('type %s, interval=%f', line[2], t)
 
             elif line[0] == 'hotkey':
                 pyautogui.hotkey(line[1], line[2])
