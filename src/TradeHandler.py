@@ -76,12 +76,12 @@ class TradeHandler(threading.Thread):
     def buy_stock(self, event):
         if event.symbol in self.rz_stocks:
             self.logger.debug(u'融资买入股票: %s', event.symbol)
-            self.replace_order_var(self.buy_cmd, event, self.buyPosStock, self.buyPosPrice, self.buyPosVol)
-            self.execute_cmd(self.buy_cmd)
-        else:
-            self.logger.debug(u'买入股票: %s', event.symbol)
             self.replace_order_var(self.rz_buy_cmd, event, self.rzbuyPosStock, self.rzbuyPosPrice, self.rzbuyPosVol)
             self.execute_cmd(self.rz_buy_cmd)
+        else:
+            self.logger.debug(u'买入股票: %s', event.symbol)
+            self.replace_order_var(self.buy_cmd, event, self.buyPosStock, self.buyPosPrice, self.buyPosVol)
+            self.execute_cmd(self.buy_cmd)
 
     def sell_stock(self, event):
         if event.symbol in self.rz_stocks:
