@@ -6,11 +6,10 @@ from ResponseHandler import ResponseHandler
 
 
 class ZXResponseHandler(ResponseHandler):
-
     def __init__(self, q, events, response_table, logger):
         super(ZXResponseHandler, self).__init__(q, events, response_table, logger)
-        self.status = {u'未报': 0, u'已报': 1, u'未成': 2, u'已报待撤': 3,  u'已成': 4,  u'已撤': 5,  u'废单': 6}
-
+        self.status = {u'待报': 0, u'未报': 0, u'已报': 1, u'未成': 2, u'部成': 2, u'已报待撤': 3,
+                       u'已成': 4, u'已撤': 5, u'部撤': 5, u'废单': 6}
 
     # 更新已标记了委托号且未完成的委托
     def tagged_changes(self, new_orders):
@@ -59,7 +58,7 @@ class ZXResponseHandler(ResponseHandler):
 
             self.logger.debug('untagged orders: untagged=%s', untagged.to_string())
             # 从new_orders中查找出没有匹配委托编号的记录
-            to_tag = new_orders[new_orders[u'申请编号'].isin(self.orders['entrustno']) == False ]
+            to_tag = new_orders[new_orders[u'申请编号'].isin(self.orders['entrustno']) == False]
             to_tag['tagged'] = np.zeros(len(to_tag))
             self.logger.debug('to_tag = %s', to_tag.to_string())
             # to_tag = to_tag.set_index([u'委托时间'])
