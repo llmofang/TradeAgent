@@ -58,7 +58,8 @@ class ZXResponseHandler(ResponseHandler):
 
             self.logger.debug('untagged orders: untagged=%s', untagged.to_string())
             # 从new_orders中查找出没有匹配委托编号的记录
-            to_tag = new_orders[new_orders[u'申请编号'].isin(self.orders['entrustno']) == False]
+            to_tag = new_orders[(new_orders[u'申请编号'].isin(self.orders['entrustno']) == False) &
+                                (new_orders[u'业务名称'] != u'撤单')]
             to_tag['tagged'] = np.zeros(len(to_tag))
             self.logger.debug('to_tag = %s', to_tag.to_string())
             # to_tag = to_tag.set_index([u'委托时间'])
