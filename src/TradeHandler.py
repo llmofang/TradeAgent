@@ -213,11 +213,11 @@ class TradeHandler(threading.Thread):
                 if datetime.now() - self.last_check_orders_time > timedelta(seconds=1):
                     if self.auto_check_orders:
                         self.check_orders()
-                        self.last_check_orders_time = datetime.now()
                         # for debug only check once
                         # self.auto_check_orders = False
                     else:
                         self.logger.debug('...')
+                    self.last_check_orders_time = datetime.now()
 
                 continue
             else:
