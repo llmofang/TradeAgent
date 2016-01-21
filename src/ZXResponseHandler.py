@@ -52,7 +52,7 @@ class ZXResponseHandler(ResponseHandler):
     def untagged_changes(self, new_orders, nearest_min):
         try:
 
-            # 从orders中查找出最近三分钟以内（更早时间的不做处理），没有被标记的委托记录
+            # 从orders中查找出最近几分钟以内（更早时间的不做处理），没有被标记的委托记录
             nearest = datetime.now() - timedelta(minutes=nearest_min)
             untagged = self.orders[(self.orders['tagged'] == 0) & (self.orders['time'] > nearest)]
 
