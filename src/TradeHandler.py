@@ -119,8 +119,8 @@ class TradeHandler(threading.Thread):
             self.logger.debug('got new orders from clipboard, new_orders = %s', new_orders.to_string())
             if len(new_orders) > 0:
                 new_orders = new_orders.set_index([u'委托时间'])
-                new = datetime.now() + timedelta(minutes=30)
-                old = datetime.now() - timedelta(minutes=30)
+                new = datetime.now() + timedelta(minutes=5)
+                old = datetime.now() - timedelta(minutes=90)
                 new_orders = new_orders.between_time(old, new)
                 self.logger.debug('get recent orders: new_orders = %s', new_orders.to_string())
 
