@@ -6,3 +6,4 @@ type stockprice 35.4 0.1
 press tab 1 0 0.1
 type stocknum 1000 0.1
 press s 1 0 0.1
+press enter 1 0 0.3
