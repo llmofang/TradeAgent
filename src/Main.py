@@ -3,6 +3,7 @@ from TradeHandler import TradeHandler
 from RequestHandler import RequestHandler
 from ZXResponseHandler import ZXResponseHandler
 from HTResponseHandler import HTResponseHandler
+from W32TradeHandler import W32TradeHandler
 
 from qpython import qconnection
 from MyUtils import read_commands
@@ -98,7 +99,29 @@ def run(cancel, check, order):
     q_response_table = cf.get("db", "response_table")
     # todo
     q_sub_users = cf.get("kdb", "sub_users").split(',')
-    q_var_prefix = cf.get("kdb", "var_prefix").split(',')
+    q_var_prefix = cf.get("kdb", "var_prefix")
+
+    mode_style = cf.get("mode", "style")
+
+    wnd_title = cf.get("hwnd_mode", "wnd_title")
+    hwnd_parents_buy = cf.get("hwnd_mode", "hwnd_parents_buy").split(',')
+    hwnd_controls_buy = cf.get("hwnd_mode", "hwnd_controls_buy").split(',')
+    hwnd_parents_sell = cf.get("hwnd_mode", "hwnd_parents_sell").split(',')
+    hwnd_controls_sell = cf.get("hwnd_mode", "hwnd_controls_sell").split(',')
+
+    hwnd_parents_buy = [int(i) for i in hwnd_parents_buy]
+    hwnd_controls_buy = [int(i) for i in hwnd_controls_buy]
+    hwnd_parents_sell = [int(i) for i in hwnd_parents_sell]
+    hwnd_controls_sell = [int(i) for i in hwnd_controls_sell]
+
+    buy_hwnds_index = []
+    sell_hwnds_index = []
+
+    buy_hwnds_index.append(hwnd_parents_buy)
+    buy_hwnds_index.append(hwnd_controls_buy)
+
+    sell_hwnds_index.append(hwnd_parents_sell)
+    sell_hwnds_index.append(hwnd_controls_sell)
 
     q_req = qconnection.QConnection(host=q_host, port=q_port, pandas=True)
     q_res = qconnection.QConnection(host=q_host, port=q_port, pandas=True)
@@ -107,8 +130,13 @@ def run(cancel, check, order):
         q_req.open()
         q_res.open()
 
-        trade_handler = TradeHandler(buy_cmd, sell_cmd, rz_buy_cmd, rz_sell_cmd, rz_stocks, cancel_cmd, check_cmd,
-                                     events_trade, events_response, logger, check)
+        if mode_style == 'hwnd':
+            trade_handler = W32TradeHandler(wnd_title, buy_hwnds_index, sell_hwnds_index, buy_hwnds_index,
+                                           sell_hwnds_index, rz_stocks, events_trade, logger)
+        else:
+            trade_handler = TradeHandler(buy_cmd, sell_cmd, rz_buy_cmd, rz_sell_cmd, rz_stocks, cancel_cmd, check_cmd,
+                                        events_trade, events_response, logger, check)
+
         request_handler = RequestHandler(q_req, events_response, events_trade, q_request_table, q_sub_users,
                                          logger, events_types)
         if broker == 'ht':
