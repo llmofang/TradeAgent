@@ -13,7 +13,7 @@ class ResponseHandler(threading.Thread):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, q, events, response_table, logger):
+    def __init__(self, q, events, response_table, logger, kdb_var_prefix):
         super(ResponseHandler, self).__init__()
         self._stop = threading.Event()
         self.q = q
@@ -21,6 +21,7 @@ class ResponseHandler(threading.Thread):
         self.response_table = response_table
         # self.status = {u'未报': 0, u'已报': 1, u'未成': 2, u'已报待撤': 3,  u'已成': 4,  u'已撤': 5,  u'废单': 6}
         self.logger = logger
+        self.kdb_var_prefix = kdb_var_prefix
         pd.set_option('mode.chained_assignment', None)
         # pd.set_option('display.encoding', 'gbk')
 
@@ -73,12 +74,13 @@ class ResponseHandler(threading.Thread):
         if event.update_kdb:
             # todo 撤单的无需更新
             try:
-                if self.q('set', np.string_('my_new_orders'), new_orders) == 'my_new_orders':
+                kdb_var = self.kdb_var_prefix + '_news'
+                if self.q('set', kdb_var, new_orders) == kdb_var:
                     self.logger.info('set new orders to my_new_orders successful!')
                 else:
                     self.logger.error('set new orders to my_new_orders error!')
 
-                if self.q('wsupd[`trade2; my_new_orders]') == 'trade2':
+                if self.q('wsupd[`trade2; %s]' % kdb_var) == 'trade2':
                     self.logger.info('wsupd trade2 successful! ')
                 else:
                     self.logger.error('wsupd trade2  error!')
@@ -117,12 +119,14 @@ class ResponseHandler(threading.Thread):
             self.logger.debug('send changes: changes=%s', changes.to_string())
             changes.meta = self.table_meta
 
-            if self.q('set', np.string_('my_changes'), changes) == 'my_changes':
+            kdb_var = self.kdb_var_prefix + '_changes'
+
+            if self.q('set', np.string_(kdb_var), changes) == kdb_var:
                 self.logger.debug('set changes to my_changes successful!')
             else:
                 self.logger.error('set changes to my_changes error!')
 
-            if self.q('wsupd[`trade2; my_changes]') == 'trade2':
+            if self.q('wsupd[`trade2; %s]' % kdb_var) == 'trade2':
                 self.logger.info('wsupd my_changes to trade2 successful! ')
             else:
                 self.logger.error('wsupd my_changes to trade2  error!')

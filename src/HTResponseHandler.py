@@ -7,8 +7,8 @@ from ResponseHandler import ResponseHandler
 
 class HTResponseHandler(ResponseHandler):
 
-    def __init__(self, q, events, response_table, logger):
-        super(HTResponseHandler, self).__init__(q, events, response_table, logger)
+    def __init__(self, q, events, response_table, logger, kdb_var_prefix):
+        super(HTResponseHandler, self).__init__(q, events, response_table, logger, kdb_var_prefix)
         # todo 未报 已报 未成 已报待撤 暂未捕获
         # 部撤是部分成交,部分已撤
         self.status = {u'未报': 0, u'已报': 1, u'未成': 2, u'已报待撤': 3,  u'已成': 4,  u'已撤': 5, u'部撤': 5,  u'废单': 6}

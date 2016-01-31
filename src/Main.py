@@ -97,7 +97,8 @@ def run(cancel, check, order):
     q_request_table = cf.get("db", "request_table")
     q_response_table = cf.get("db", "response_table")
     # todo
-    q_sub_users = cf.get("subscribe", "users").split(',')
+    q_sub_users = cf.get("kdb", "sub_users").split(',')
+    q_var_prefix = cf.get("kdb", "var_prefix").split(',')
 
     q_req = qconnection.QConnection(host=q_host, port=q_port, pandas=True)
     q_res = qconnection.QConnection(host=q_host, port=q_port, pandas=True)
@@ -111,9 +112,9 @@ def run(cancel, check, order):
         request_handler = RequestHandler(q_req, events_response, events_trade, q_request_table, q_sub_users,
                                          logger, events_types)
         if broker == 'ht':
-            response_handler = HTResponseHandler(q_res, events_response, q_response_table, logger)
+            response_handler = HTResponseHandler(q_res, events_response, q_response_table, logger, q_var_prefix)
         elif broker == 'zx':
-            response_handler = ZXResponseHandler(q_res, events_response, q_response_table, logger)
+            response_handler = ZXResponseHandler(q_res, events_response, q_response_table, logger, q_var_prefix)
         else:
             logger.error('Unknown broker =%s', broker)
 
