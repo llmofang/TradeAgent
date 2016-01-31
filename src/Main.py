@@ -97,7 +97,7 @@ def run(cancel, check, order):
     q_request_table = cf.get("db", "request_table")
     q_response_table = cf.get("db", "response_table")
     # todo
-    q_sub_users = []
+    q_sub_users = cf.get("subscribe", "users").split(',')
 
     q_req = qconnection.QConnection(host=q_host, port=q_port, pandas=True)
     q_res = qconnection.QConnection(host=q_host, port=q_port, pandas=True)
