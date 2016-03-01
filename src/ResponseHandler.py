@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import threading
+import multiprocessing
 from Queue import Queue
 import numpy as np
 import pandas as pd
@@ -9,13 +9,13 @@ from qpython.qtype import QException
 from pandas import DataFrame
 from abc import ABCMeta, abstractmethod
 
-class ResponseHandler(threading.Thread):
 
+class ResponseHandler(multiprocessing.Process):
     __metaclass__ = ABCMeta
 
     def __init__(self, q, events, response_table, logger, kdb_var_prefix):
         super(ResponseHandler, self).__init__()
-        self._stop = threading.Event()
+        self._stop = multiprocessing.Event()
         self.q = q
         self.events = events
         self.response_table = response_table
@@ -85,7 +85,7 @@ class ResponseHandler(threading.Thread):
                 else:
                     self.logger.error('wsupd trade2  error!')
             except QException, e:
-                    print(e)
+                print(e)
 
     def compute_changes(self, event):
         try:

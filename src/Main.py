@@ -1,4 +1,4 @@
-from Queue import Queue
+import multiprocessing
 from TradeHandler import TradeHandler
 from RequestHandler import RequestHandler
 from ZXResponseHandler import ZXResponseHandler
@@ -26,7 +26,6 @@ rz_buy_cmd_file = cf.get("cmd_mode", "rz_buy_cmd_file")
 rz_sell_cmd_file = cf.get("cmd_mode", "rz_sell_cmd_file")
 check_cmd_file = cf.get("cmd_mode", "check_cmd_file")
 cancel_cmd_file = cf.get("cmd_mode", "cancel_cmd_file")
-
 
 
 def usage():
@@ -90,8 +89,8 @@ def run(cancel, check, order):
     cancel_cmd = read_commands(cancel_cmd_file)
     check_cmd = read_commands(check_cmd_file)
 
-    events_trade = Queue()
-    events_response = Queue()
+    events_trade = multiprocessing.Queue()
+    events_response = multiprocessing.Queue()
     q_host = cf.get("db", "host")
     q_port = cf.getint("db", "port")
     q_request_table = cf.get("db", "request_table")
@@ -127,6 +126,10 @@ def run(cancel, check, order):
         trade_handler.stop()
         request_handler.stop()
         response_handler.stop()
+
+        trade_handler.join()
+        request_handler.join()
+        response_handler.join()
 
     finally:
         q_req.close()

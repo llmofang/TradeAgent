@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import threading
+import multiprocessing
 import numpy as np
 import pandas as pd
 from qpython.qtype import QException
@@ -7,11 +7,11 @@ from pandas import DataFrame
 from Event import *
 
 
-class RequestHandler(threading.Thread):
+class RequestHandler(multiprocessing.Process):
 
     def __init__(self, q, events_response, events_trade, request_table, users, logger, event_types):
         super(RequestHandler, self).__init__()
-        self._stop = threading.Event()
+        self._stop = multiprocessing.Event()
         self.q = q
         self.events_response = events_response
         self.events_trade = events_trade

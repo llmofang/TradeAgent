@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import pyautogui
-import threading
+import multiprocessing
 import Queue
 from datetime import datetime
 from datetime import timedelta
@@ -8,11 +8,11 @@ from Event import OrderStatusEvent
 import pandas as pd
 
 
-class TradeHandler(threading.Thread):
+class TradeHandler(multiprocessing.Process):
     def __init__(self, buy_cmd, sell_cmd, rz_buy_cmd, rz_sell_cmd, rz_stocks, cancel_cmd, check_cmd, events_in, events_out,
                  logger, auto_check_orders=False):
         super(TradeHandler, self).__init__()
-        self._stop = threading.Event()
+        self._stop = multiprocessing.Event()
 
         self.buy_cmd = buy_cmd
         self.sell_cmd = sell_cmd
