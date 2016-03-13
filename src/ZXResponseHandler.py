@@ -64,10 +64,10 @@ class ZXResponseHandler(ResponseHandler):
             print('to_tag = %s', to_tag.to_string())
             # to_tag = to_tag.set_index([u'委托时间'])
             for i in range(len(untagged)):
-                old = untagged['time'].iloc[i] - timedelta(minutes=2)
-                new = untagged['time'].iloc[i] + timedelta(minutes=2)
+                old = untagged['time'].iloc[i] - timedelta(minutes=3)
+                new = untagged['time'].iloc[i] + timedelta(minutes=3)
 
-                # 时间上匹配上下2分钟的
+                # 时间上匹配上下3分钟的
                 time_match = to_tag.between_time(old, new)
                 print('time_match = %s', time_match.to_string())
                 print('time_match: dtypes = %s', time_match.dtypes)
@@ -75,6 +75,7 @@ class ZXResponseHandler(ResponseHandler):
                                    (time_match[u'委托价格'] == untagged['askprice'].iloc[i]) &
                                    (time_match[u'委托数量'] == abs(int(untagged['askvol'].iloc[i]))) &
                                    (time_match[u'买卖'] == (u'买入' if int(untagged['askvol'].iloc[i]) > 0 else u'卖出')) &
+                                   #(time_match[u'买卖'] == (u'证券买入' if int(untagged['askvol'].iloc[i]) > 0 else u'证券卖出')) &
                                    (time_match['tagged'] == 0)]
                 print('find order match untagged order: match=%s', match.to_string())
                 match = match.sort_index(ascending=True)

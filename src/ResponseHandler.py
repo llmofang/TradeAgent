@@ -23,7 +23,7 @@ class ResponseHandler(multiprocessing.Process):
         cf.read("tradeagent.conf")
         self.q_host = cf.get("db", "host")
         self.q_port = cf.getint("db", "port")
-
+        self.q = None
         self.events = events
         self.response_table = cf.get("db", "response_table")
         # self.status = {u'未报': 0, u'已报': 1, u'未成': 2, u'已报待撤': 3,  u'已成': 4,  u'已撤': 5,  u'废单': 6}
@@ -137,9 +137,12 @@ class ResponseHandler(multiprocessing.Process):
             else:
                 print('wsupd my_changes to trade2  error!')
 
-    def run(self):
+    def open_kdb(self):
         self.q = qconnection.QConnection(host=self.q_host, port=self.q_port, pandas=True)
         self.q.open()
+
+    def run(self):
+        self.open_kdb()
         self.get_all_orders()
         while True:
             event = None
@@ -154,3 +157,5 @@ class ResponseHandler(multiprocessing.Process):
                         self.compute_changes(event)
                     elif event.type == "NewOrdersEvent":
                         self.get_new_orders(event)
+
+

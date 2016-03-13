@@ -8,6 +8,8 @@ from Event import OrderStatusEvent
 import pandas as pd
 import ConfigParser
 from MyUtils import read_commands
+import logging
+import logging.config
 
 
 class TradeHandler(multiprocessing.Process):
@@ -53,6 +55,9 @@ class TradeHandler(multiprocessing.Process):
         self.cancelPosEntrust = self.get_var_pos(self.cancel_cmd, 'entrustno')
 
         self.last_check_orders_time = datetime.now()
+
+        #logging.config.fileConfig('log.conf')
+        #self.logger = logging.getLogger('trade')
 
     def get_var_pos(self, cmd, key):
         i = 0
@@ -127,7 +132,7 @@ class TradeHandler(multiprocessing.Process):
                     columns_drop = [u'委托日期', u'证券名称', u'委托类型', u'资金帐号', u'交易市场', u'股东账户' u'返回信息', 'Unnamed: 16', 'Unnamed: 17']
                     for column in columns_drop:
                         if column in new_orders.columns:
-                            print('droping unused columns: column=%s', column)
+                            #self.logger.debug('droping unused columns: column=%s', column)
                             new_orders = new_orders.drop(column, axis=1)
                 else:
                     new_orders = pd.DataFrame([])

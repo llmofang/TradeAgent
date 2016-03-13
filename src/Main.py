@@ -10,12 +10,9 @@ import logging.config
 import getopt
 import ConfigParser
 
-
 cf = ConfigParser.ConfigParser()
 cf.read("tradeagent.conf")
 broker = cf.get("cmd_mode", "broker")
-
-
 
 def usage():
     print 'Main.py usage:'

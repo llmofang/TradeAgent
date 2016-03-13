@@ -17,6 +17,8 @@ class RequestHandler(multiprocessing.Process):
         self.q_host = cf.get("db", "host")
         self.q_port = cf.getint("db", "port")
 
+        self.q = None
+
         self.events_response = events_response
         self.events_trade = events_trade
 
@@ -90,11 +92,15 @@ class RequestHandler(multiprocessing.Process):
                     print('generate event: event=%s', event)
                     self.events_trade.put(event)
                     print('RequestHandler events_out size: %s', self.events_trade.qsize())
-
-    def run(self):
+    def open_kdb(self):
         self.q = qconnection.QConnection(host=self.q_host, port=self.q_port, pandas=True)
         self.q.open()
+
+
+    def run(self):
+        self.open_kdb()
         self.subscribe_request()
         while True:
             df_new_requests = self.get_new_requests()
             self.send_events(df_new_requests)
+
