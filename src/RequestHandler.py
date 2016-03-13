@@ -7,6 +7,7 @@ from pandas import DataFrame
 from Event import *
 from qpython import qconnection
 import ConfigParser
+import logging
 
 class RequestHandler(multiprocessing.Process):
 
@@ -30,9 +31,17 @@ class RequestHandler(multiprocessing.Process):
         else:
             self.users = []
 
+        self.logger = None
+
+    def stop(self):
+        self._stop.set()
+
+    def stopped(self):
+        return self._stop.isSet()
+
     def subscribe_request(self):
         # TODO
-        print('subscribe trade: table=%s, users=%s', self.request_table, self.users)
+        self.logger.debug('subscribe trade: table=%s, users=%s', self.request_table, self.users)
         self.q.sync('.u.sub', np.string_(self.request_table), np.string_('' if self.users == [] else self.users))
 
     def get_new_requests(self):
@@ -42,7 +51,7 @@ class RequestHandler(multiprocessing.Process):
         df_new_requests = pd.DataFrame(columns=columns)
         try:
             message = self.q.receive(data_only=False, raw=False, pandas=True)
-            print('type: %s, message type: %s, data size: %s, is_compressed: %s ',
+            self.logger.debug('type: %s, message type: %s, data size: %s, is_compressed: %s ',
                               type(message), message.type, message.size, message.is_compressed)
 
             if isinstance(message.data, list):
@@ -57,13 +66,13 @@ class RequestHandler(multiprocessing.Process):
                         # df_new_requests[['entrustno', 'stockcode', 'askvol', 'bidvol', 'withdraw', 'status']] = \
                         #     df_new_requests[['entrustno', 'stockcode', 'askvol', 'bidvol', 'withdraw', 'status']].astype(int)
                         # df_new_requests = df_new_requests.set_index(index)
-                        print('TODO: IT IS A LIST, I CAN NOT HANDLE IT NOW')
+                        self.logger.error('TODO: IT IS A LIST, I CAN NOT HANDLE IT NOW')
                     else:
-                        print("message.data content error!")
-            print('new requests data: df_new_requests=%s', df_new_requests.to_string())
+                        self.logger.error("message.data content error!")
+            self.logger.debug('new requests data: df_new_requests=%s', df_new_requests.to_string())
 
         except QException, e:
-                print(e)
+                self.logger.error(e)
         finally:
             return df_new_requests
 
@@ -71,7 +80,7 @@ class RequestHandler(multiprocessing.Process):
         if len(df_new_requests) > 0:
             update_kdb = True if 'OrderEvent' in self.event_types else False
             new_order_event = NewOrdersEvent(df_new_requests, update_kdb)
-            print('generate NewOrdersEvent=%s', new_order_event)
+            self.logger.debug('generate NewOrdersEvent=%s', new_order_event)
             self.events_response.put(new_order_event)
             df_new_requests = df_new_requests.reset_index()
             event = []
@@ -83,21 +92,23 @@ class RequestHandler(multiprocessing.Process):
                     price = str(round(row.askprice, 2))
                     direction = 'BUY' if int(row.askvol) > 0 else 'SELL'
                     if (row.askvol % 100) != 0:
-                        print('order quantity not multiple by 100: askvol=%i', row.askvol)
+                        self.logger.error('order quantity not multiple by 100: askvol=%i', row.askvol)
                         continue
                     quantity = str(abs(int(row.askvol)))
                     event = OrderEvent(symbol, direction, price, quantity)
 
                 if event:
-                    print('generate event: event=%s', event)
+                    self.logger.debug('generate event: event=%s', event)
                     self.events_trade.put(event)
-                    print('RequestHandler events_out size: %s', self.events_trade.qsize())
+                    self.logger.debug('RequestHandler events_out size: %s', self.events_trade.qsize())
+
     def open_kdb(self):
         self.q = qconnection.QConnection(host=self.q_host, port=self.q_port, pandas=True)
         self.q.open()
 
-
     def run(self):
+        logging.config.fileConfig('log.conf')
+        self.logger = logging.getLogger('request')
         self.open_kdb()
         self.subscribe_request()
         while True:

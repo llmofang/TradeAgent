@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import multiprocessing
-from Queue import Queue
+from Queue import Empty
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -30,6 +30,7 @@ class ResponseHandler(multiprocessing.Process):
         self.kdb_var_prefix = cf.get("kdb", "var_prefix").split(',')
         pd.set_option('mode.chained_assignment', None)
         # pd.set_option('display.encoding', 'gbk')
+        self.logger = None
 
     def stop(self):
         self._stop.set()
@@ -40,41 +41,41 @@ class ResponseHandler(multiprocessing.Process):
     def get_all_orders(self):
         query = 'select from ' + self.response_table
         self.orders = self.q(query)
-        print('get all orders: orders=%s', self.orders.to_string())
+        self.logger.debug('get all orders: orders=%s', self.orders.to_string())
         # TODO 这样有问题吧？？？？
         # self.orders.reset_index()
         self.table_meta = self.orders.meta
-        print('table meta= %s', self.table_meta)
+        self.logger.debug('table meta= %s', self.table_meta)
 
     def get_new_orders(self, event):
         new_orders = event.new_orders
-        print('got new orders: new_orders=%s', new_orders.to_string())
+        self.logger.debug('got new orders: new_orders=%s', new_orders.to_string())
 
-        print('new_orders.dtypes = %s', new_orders.dtypes)
+        self.logger.debug('new_orders.dtypes = %s', new_orders.dtypes)
         try:
             new_orders = new_orders[new_orders['status'] != 3]
             columns = ['entrustno', 'askvol', 'bidvol', 'withdraw', 'status']
             for column in columns:
                 # why? somewhere changed from int32 to int64, so converting it back
                 if new_orders.dtypes[column] != 'int32':
-                    print('new orders column converting to int: column = %s', column)
+                    self.logger.debug('new orders column converting to int: column = %s', column)
                     new_orders[column] = new_orders[column].astype(int)
 
             if ('sym' not in new_orders.index.names) or ('qid' not in new_orders.index.names):
-                print('set index [sym, qid] for new orders')
+                self.logger.debug('set index [sym, qid] for new orders')
                 new_orders = new_orders.set_index(['sym', 'qid'])
 
             if 'index' in new_orders.columns:
-                print('drop index columns for new orders')
+                self.logger.debug('drop index columns for new orders')
                 new_orders = new_orders.drop(['index'], axis=1)
         except QException, e:
-            print(e)
+            self.logger.error(e)
 
         new_orders.meta = self.table_meta
         # self.orders = pd.concat([self.orders, new_orders])
-        print('before update new orders: orders=%s', self.orders.to_string())
+        self.logger.debug('before update new orders: orders=%s', self.orders.to_string())
         self.orders = pd.concat([self.orders, new_orders])
-        print('after update new orders: orders=%s', self.orders.to_string())
+        self.logger.debug('after update new orders: orders=%s', self.orders.to_string())
         new_orders.meta = self.table_meta
 
         if event.update_kdb:
@@ -82,14 +83,14 @@ class ResponseHandler(multiprocessing.Process):
             try:
                 kdb_var = self.kdb_var_prefix + '_news'
                 if self.q('set', kdb_var, new_orders) == kdb_var:
-                    print('set new orders to my_new_orders successful!')
+                    self.logger.info('set new orders to my_new_orders successful!')
                 else:
-                    print('set new orders to my_new_orders error!')
+                    self.logger.error('set new orders to my_new_orders error!')
 
                 if self.q('wsupd[`trade2; %s]' % kdb_var) == 'trade2':
-                    print('wsupd trade2 successful! ')
+                    self.logger.info('wsupd trade2 successful! ')
                 else:
-                    print('wsupd trade2  error!')
+                    self.logger.error('wsupd trade2  error!')
             except QException, e:
                 print(e)
 
@@ -101,7 +102,7 @@ class ResponseHandler(multiprocessing.Process):
             self.tagged_changes(event.orders)
             self.untagged_changes(event.orders, 2)
         except Exception, e:
-            print('Exception: %s', e)
+            self.logger.error('Exception: %s', e)
 
     # 更新已标记了委托号且未完成的委托
     @abstractmethod
@@ -114,34 +115,36 @@ class ResponseHandler(multiprocessing.Process):
         raise NotImplementedError("Should implement untagged_changes()")
 
     def send_changes(self, changes):
-        print('changes length: %i', len(changes))
-        print('changes dtypes: %s', changes.dtypes)
+        self.logger.debug('changes length: %i', len(changes))
+        self.logger.debug('changes dtypes: %s', changes.dtypes)
         if len(changes) > 0:
             # TODO
             # changes = changes.reset_index()
             # changes = changes.set_index(['sym', 'qid'])
             changes = changes.drop(['tagged', 'changed'], axis=1)
-            print('changes dtypes=%s', changes.dtypes)
-            print('send changes: changes=%s', changes.to_string())
+            self.logger.debug('changes dtypes=%s', changes.dtypes)
+            self.logger.debug('send changes: changes=%s', changes.to_string())
             changes.meta = self.table_meta
 
             kdb_var = self.kdb_var_prefix + '_changes'
 
             if self.q('set', np.string_(kdb_var), changes) == kdb_var:
-                print('set changes to my_changes successful!')
+                self.logger.debug('set changes to my_changes successful!')
             else:
-                print('set changes to my_changes error!')
+                self.logger.error('set changes to my_changes error!')
 
             if self.q('wsupd[`trade2; %s]' % kdb_var) == 'trade2':
-                print('wsupd my_changes to trade2 successful! ')
+                self.logger.info('wsupd my_changes to trade2 successful! ')
             else:
-                print('wsupd my_changes to trade2  error!')
+                self.logger.error('wsupd my_changes to trade2  error!')
 
     def open_kdb(self):
         self.q = qconnection.QConnection(host=self.q_host, port=self.q_port, pandas=True)
         self.q.open()
 
     def run(self):
+        logging.config.fileConfig('log.conf')
+        self.logger = logging.getLogger('response')
         self.open_kdb()
         self.get_all_orders()
         while True:
@@ -149,7 +152,7 @@ class ResponseHandler(multiprocessing.Process):
             try:
                 while self.events.qsize() > 0:
                     event = self.events.get()
-            except Queue.Empty:
+            except Empty:
                 print('queue empty error!')
             else:
                 if event is not None:

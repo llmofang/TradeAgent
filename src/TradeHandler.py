@@ -56,8 +56,13 @@ class TradeHandler(multiprocessing.Process):
 
         self.last_check_orders_time = datetime.now()
 
-        #logging.config.fileConfig('log.conf')
-        #self.logger = logging.getLogger('trade')
+        self.logger = None
+
+    def stop(self):
+        self._stop.set()
+
+    def stopped(self):
+        return self._stop.isSet()
 
     def get_var_pos(self, cmd, key):
         i = 0
@@ -79,21 +84,21 @@ class TradeHandler(multiprocessing.Process):
 
     def buy_stock(self, event):
         if event.symbol in self.rz_stocks:
-            print(u'融资买入股票: %s', event.symbol)
+            self.logger.debug(u'融资买入股票: %s', event.symbol)
             self.replace_order_var(self.rz_buy_cmd, event, self.rzbuyPosStock, self.rzbuyPosPrice, self.rzbuyPosVol)
             self.execute_cmd(self.rz_buy_cmd)
         else:
-            print(u'买入股票: %s', event.symbol)
+            self.logger.debug(u'买入股票: %s', event.symbol)
             self.replace_order_var(self.buy_cmd, event, self.buyPosStock, self.buyPosPrice, self.buyPosVol)
             self.execute_cmd(self.buy_cmd)
 
     def sell_stock(self, event):
         if event.symbol in self.rz_stocks:
-            print(u'融资卖出股票: %s', event.symbol)
+            self.logger.debug(u'融资卖出股票: %s', event.symbol)
             self.replace_order_var(self.rz_sell_cmd, event, self.rzsellPosStock, self.rzsellPosPrice, self.rzsellPosVol)
             self.execute_cmd(self.rz_sell_cmd)
         else:
-            print(u'卖出股票: %s', event.symbol)
+            self.logger.debug(u'卖出股票: %s', event.symbol)
             self.replace_order_var(self.sell_cmd, event, self.sellPosStock, self.sellPosPrice, self.sellPosVol)
             self.execute_cmd(self.sell_cmd)
 
@@ -120,19 +125,19 @@ class TradeHandler(multiprocessing.Process):
         new_orders = pd.DataFrame([])
         try:
             new_orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'委托时间'], nrows=30)
-            print('got new orders from clipboard, new_orders = %s', new_orders.to_string())
+            self.logger.debug('got new orders from clipboard, new_orders = %s', new_orders.to_string())
             if len(new_orders) > 0:
                 new_orders = new_orders.set_index([u'委托时间'])
                 new = datetime.now() + timedelta(minutes=5)
                 old = datetime.now() - timedelta(minutes=90)
                 new_orders = new_orders.between_time(old, new)
-                print('get recent orders: new_orders = %s', new_orders.to_string())
+                self.logger.debug('get recent orders: new_orders = %s', new_orders.to_string())
 
                 if len(new_orders) > 0:
                     columns_drop = [u'委托日期', u'证券名称', u'委托类型', u'资金帐号', u'交易市场', u'股东账户' u'返回信息', 'Unnamed: 16', 'Unnamed: 17']
                     for column in columns_drop:
                         if column in new_orders.columns:
-                            #self.logger.debug('droping unused columns: column=%s', column)
+                            self.logger.debug('droping unused columns: column=%s', column)
                             new_orders = new_orders.drop(column, axis=1)
                 else:
                     new_orders = pd.DataFrame([])
@@ -147,15 +152,15 @@ class TradeHandler(multiprocessing.Process):
         try:
             if len(orders) > 0:
                 event = OrderStatusEvent(orders)
-                print('generate OrderStatusEvent=%s', event)
+                self.logger.debug('generate OrderStatusEvent=%s', event)
                 self.events_out.put(event)
                 qsize = self.events_out.qsize()
                 if qsize > 3:
-                    print('events queue size is too large: qsize=%i', qsize)
+                    self.logger.error('events queue size is too large: qsize=%i', qsize)
                 else:
-                    print('events queue size: qsize=%i', qsize)
+                    self.logger.debug('events queue size: qsize=%i', qsize)
         except Exception, e:
-            print(e)
+            self.logger.info(e)
 
     def execute_cmd(self, cmd):
         for line in cmd:
@@ -164,23 +169,23 @@ class TradeHandler(multiprocessing.Process):
                 y = int(line[2])
                 t = float(line[3])
                 pyautogui.moveTo(x, y, t)
-                print('move to (%i, %i) duration=%f', x, y, t)
+                self.logger.debug('move to (%i, %i) duration=%f', x, y, t)
 
             elif line[0] == 'click':
                 try:
                     pyautogui.click()
-                    print('click')
+                    self.logger.debug('click')
                 except Exception, e:
-                    print(e)
+                    self.logger.error(e)
 
             elif line[0] == 'rightclick':
                 pyautogui.rightClick()
-                print('rightClick')
+                self.logger.debug('rightClick')
 
             elif line[0] == 'doubleclick':
                 t = float(line[1])
                 pyautogui.doubleClick(interval=t)
-                print('doubleclick')
+                self.logger.debug('doubleclick')
 
             elif line[0] == 'press':
                 key = line[1]
@@ -188,27 +193,29 @@ class TradeHandler(multiprocessing.Process):
                 interval = float(line[3])
                 pause = float(line[4])
                 pyautogui.press(key, presses=presses, interval=interval, pause=pause)
-                print('press key=%s, presses=%i, interval=%f, pause=%f ', key, presses, interval, pause)
+                self.logger.debug('press key=%s, presses=%i, interval=%f, pause=%f ', key, presses, interval, pause)
 
             elif line[0] == 'type':
                 t = float(line[3])
                 pyautogui.typewrite(line[2])
-                print('type %s, interval=%f', line[2], t)
+                self.logger.debug('type %s, interval=%f', line[2], t)
 
             elif line[0] == 'hotkey':
                 pyautogui.hotkey(line[1], line[2])
-                print('press hotkey=%s', line[1] + '+' + line[2])
+                self.logger.debug('press hotkey=%s', line[1] + '+' + line[2])
 
             elif line[0] == 'moverel':
                 x = int(line[1])
                 y = int(line[2])
                 t = float(line[3])
                 pyautogui.moveRel(x, y, t)
-                print('move Rel (%i, %i)', x, y)
+                self.logger.debug('move Rel (%i, %i)', x, y)
             else:
-                print('AutoGui Command error!')
+                self.logger.error('AutoGui Command error!')
 
     def run(self):
+        logging.config.fileConfig('log.conf')
+        self.logger = logging.getLogger('trade')
         while True:
             try:
                 # todo
@@ -220,20 +227,20 @@ class TradeHandler(multiprocessing.Process):
                         # for debug only check once
                         # self.auto_check_orders = False
                     else:
-                        print('...')
+                        self.logger.debug('...')
                     self.last_check_orders_time = datetime.now()
 
                 continue
             else:
                 if event is not None:
-                    print('Got Event: event=%s', event)
+                    self.logger.debug('Got Event: event=%s', event)
                     if event.type == 'Order':
                         if event.direction == 'BUY':
                             self.buy_stock(event)
                         elif event.direction == 'SELL':
                             self.sell_stock(event)
                         else:
-                            print('Order direction error!')
+                            self.logger.error('Order direction error!')
 
                     elif event.type == 'CancelOrder':
                         self.cancel_order(event)
