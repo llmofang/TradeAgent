@@ -6,54 +6,53 @@ from datetime import datetime
 from datetime import timedelta
 from Event import OrderStatusEvent
 import pandas as pd
+import ConfigParser
+from MyUtils import read_commands
 
 
 class TradeHandler(multiprocessing.Process):
-    def __init__(self, buy_cmd, sell_cmd, rz_buy_cmd, rz_sell_cmd, rz_stocks, cancel_cmd, check_cmd, events_in, events_out,
-                 logger, auto_check_orders=False):
+    def __init__(self, events_in, events_out, auto_check_orders=False):
         super(TradeHandler, self).__init__()
-        self._stop = multiprocessing.Event()
 
-        self.buy_cmd = buy_cmd
-        self.sell_cmd = sell_cmd
-
-        self.rz_buy_cmd = rz_buy_cmd
-        self.rz_sell_cmd = rz_sell_cmd
-
-        self.rz_stocks = rz_stocks
-
-        self.cancel_cmd = cancel_cmd
-        self.check_cmd = check_cmd
         self.events_in = events_in
         self.events_out = events_out
+
+        cf = ConfigParser.ConfigParser()
+        cf.read("tradeagent.conf")
+
+        self.buy_cmd = read_commands(cf.get("cmd_mode", "buy_cmd_file"))
+        self.sell_cmd = read_commands(cf.get("cmd_mode", "sell_cmd_file"))
+
+        self.rz_buy_cmd = read_commands(cf.get("cmd_mode", "rz_buy_cmd_file"))
+        self.rz_sell_cmd = read_commands(cf.get("cmd_mode", "rz_sell_cmd_file"))
+
+        self.rz_stocks = cf.get("stocks", "rz_stocks").split(',')
+
+        self.cancel_cmd = read_commands(cf.get("cmd_mode", "cancel_cmd_file"))
+        self.check_cmd = read_commands(cf.get("cmd_mode", "check_cmd_file"))
+        self.events_in = multiprocessing.Manager().Queue()
+        self.events_out = multiprocessing.Manager().Queue()
         self.auto_check_orders = auto_check_orders
 
-        self.buyPosStock = self.get_var_pos(buy_cmd, 'stockcode')
-        self.buyPosPrice = self.get_var_pos(buy_cmd, 'stockprice')
-        self.buyPosVol = self.get_var_pos(buy_cmd, 'stocknum')
+        self.buyPosStock = self.get_var_pos(self.buy_cmd, 'stockcode')
+        self.buyPosPrice = self.get_var_pos(self.buy_cmd, 'stockprice')
+        self.buyPosVol = self.get_var_pos(self.buy_cmd, 'stocknum')
 
-        self.sellPosStock = self.get_var_pos(sell_cmd, 'stockcode')
-        self.sellPosPrice = self.get_var_pos(sell_cmd, 'stockprice')
-        self.sellPosVol = self.get_var_pos(sell_cmd, 'stocknum')
+        self.sellPosStock = self.get_var_pos(self.sell_cmd, 'stockcode')
+        self.sellPosPrice = self.get_var_pos(self.sell_cmd, 'stockprice')
+        self.sellPosVol = self.get_var_pos(self.sell_cmd, 'stocknum')
 
-        self.rzbuyPosStock = self.get_var_pos(rz_buy_cmd, 'stockcode')
-        self.rzbuyPosPrice = self.get_var_pos(rz_buy_cmd, 'stockprice')
-        self.rzbuyPosVol = self.get_var_pos(rz_buy_cmd, 'stocknum')
+        self.rzbuyPosStock = self.get_var_pos(self.rz_buy_cmd, 'stockcode')
+        self.rzbuyPosPrice = self.get_var_pos(self.rz_buy_cmd, 'stockprice')
+        self.rzbuyPosVol = self.get_var_pos(self.rz_buy_cmd, 'stocknum')
 
-        self.rzsellPosStock = self.get_var_pos(rz_sell_cmd, 'stockcode')
-        self.rzsellPosPrice = self.get_var_pos(rz_sell_cmd, 'stockprice')
-        self.rzsellPosVol = self.get_var_pos(rz_sell_cmd, 'stocknum')
+        self.rzsellPosStock = self.get_var_pos(self.rz_sell_cmd, 'stockcode')
+        self.rzsellPosPrice = self.get_var_pos(self.rz_sell_cmd, 'stockprice')
+        self.rzsellPosVol = self.get_var_pos(self.rz_sell_cmd, 'stocknum')
 
-        self.cancelPosEntrust = self.get_var_pos(cancel_cmd, 'entrustno')
+        self.cancelPosEntrust = self.get_var_pos(self.cancel_cmd, 'entrustno')
 
         self.last_check_orders_time = datetime.now()
-        self.logger = logger
-
-    def stop(self):
-        self._stop.set()
-
-    def stopped(self):
-        return self._stop.isSet()
 
     def get_var_pos(self, cmd, key):
         i = 0
@@ -75,21 +74,21 @@ class TradeHandler(multiprocessing.Process):
 
     def buy_stock(self, event):
         if event.symbol in self.rz_stocks:
-            self.logger.debug(u'融资买入股票: %s', event.symbol)
+            print(u'融资买入股票: %s', event.symbol)
             self.replace_order_var(self.rz_buy_cmd, event, self.rzbuyPosStock, self.rzbuyPosPrice, self.rzbuyPosVol)
             self.execute_cmd(self.rz_buy_cmd)
         else:
-            self.logger.debug(u'买入股票: %s', event.symbol)
+            print(u'买入股票: %s', event.symbol)
             self.replace_order_var(self.buy_cmd, event, self.buyPosStock, self.buyPosPrice, self.buyPosVol)
             self.execute_cmd(self.buy_cmd)
 
     def sell_stock(self, event):
         if event.symbol in self.rz_stocks:
-            self.logger.debug(u'融资卖出股票: %s', event.symbol)
+            print(u'融资卖出股票: %s', event.symbol)
             self.replace_order_var(self.rz_sell_cmd, event, self.rzsellPosStock, self.rzsellPosPrice, self.rzsellPosVol)
             self.execute_cmd(self.rz_sell_cmd)
         else:
-            self.logger.debug(u'卖出股票: %s', event.symbol)
+            print(u'卖出股票: %s', event.symbol)
             self.replace_order_var(self.sell_cmd, event, self.sellPosStock, self.sellPosPrice, self.sellPosVol)
             self.execute_cmd(self.sell_cmd)
 
@@ -116,19 +115,19 @@ class TradeHandler(multiprocessing.Process):
         new_orders = pd.DataFrame([])
         try:
             new_orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'委托时间'], nrows=30)
-            self.logger.debug('got new orders from clipboard, new_orders = %s', new_orders.to_string())
+            print('got new orders from clipboard, new_orders = %s', new_orders.to_string())
             if len(new_orders) > 0:
                 new_orders = new_orders.set_index([u'委托时间'])
                 new = datetime.now() + timedelta(minutes=5)
                 old = datetime.now() - timedelta(minutes=90)
                 new_orders = new_orders.between_time(old, new)
-                self.logger.debug('get recent orders: new_orders = %s', new_orders.to_string())
+                print('get recent orders: new_orders = %s', new_orders.to_string())
 
                 if len(new_orders) > 0:
                     columns_drop = [u'委托日期', u'证券名称', u'委托类型', u'资金帐号', u'交易市场', u'股东账户' u'返回信息', 'Unnamed: 16', 'Unnamed: 17']
                     for column in columns_drop:
                         if column in new_orders.columns:
-                            self.logger.debug('droping unused columns: column=%s', column)
+                            print('droping unused columns: column=%s', column)
                             new_orders = new_orders.drop(column, axis=1)
                 else:
                     new_orders = pd.DataFrame([])
@@ -143,15 +142,15 @@ class TradeHandler(multiprocessing.Process):
         try:
             if len(orders) > 0:
                 event = OrderStatusEvent(orders)
-                self.logger.debug('generate OrderStatusEvent=%s', event)
+                print('generate OrderStatusEvent=%s', event)
                 self.events_out.put(event)
                 qsize = self.events_out.qsize()
                 if qsize > 3:
-                    self.logger.error('events queue size is too large: qsize=%i', qsize)
+                    print('events queue size is too large: qsize=%i', qsize)
                 else:
-                    self.logger.debug('events queue size: qsize=%i', qsize)
+                    print('events queue size: qsize=%i', qsize)
         except Exception, e:
-            self.logger.info(e)
+            print(e)
 
     def execute_cmd(self, cmd):
         for line in cmd:
@@ -160,23 +159,23 @@ class TradeHandler(multiprocessing.Process):
                 y = int(line[2])
                 t = float(line[3])
                 pyautogui.moveTo(x, y, t)
-                self.logger.debug('move to (%i, %i) duration=%f', x, y, t)
+                print('move to (%i, %i) duration=%f', x, y, t)
 
             elif line[0] == 'click':
                 try:
                     pyautogui.click()
-                    self.logger.debug('click')
+                    print('click')
                 except Exception, e:
-                    self.logger.error(e)
+                    print(e)
 
             elif line[0] == 'rightclick':
                 pyautogui.rightClick()
-                self.logger.debug('rightClick')
+                print('rightClick')
 
             elif line[0] == 'doubleclick':
                 t = float(line[1])
                 pyautogui.doubleClick(interval=t)
-                self.logger.debug('doubleclick')
+                print('doubleclick')
 
             elif line[0] == 'press':
                 key = line[1]
@@ -184,25 +183,25 @@ class TradeHandler(multiprocessing.Process):
                 interval = float(line[3])
                 pause = float(line[4])
                 pyautogui.press(key, presses=presses, interval=interval, pause=pause)
-                self.logger.debug('press key=%s, presses=%i, interval=%f, pause=%f ', key, presses, interval, pause)
+                print('press key=%s, presses=%i, interval=%f, pause=%f ', key, presses, interval, pause)
 
             elif line[0] == 'type':
                 t = float(line[3])
                 pyautogui.typewrite(line[2])
-                self.logger.debug('type %s, interval=%f', line[2], t)
+                print('type %s, interval=%f', line[2], t)
 
             elif line[0] == 'hotkey':
                 pyautogui.hotkey(line[1], line[2])
-                self.logger.debug('press hotkey=%s', line[1] + '+' + line[2])
+                print('press hotkey=%s', line[1] + '+' + line[2])
 
             elif line[0] == 'moverel':
                 x = int(line[1])
                 y = int(line[2])
                 t = float(line[3])
                 pyautogui.moveRel(x, y, t)
-                self.logger.debug('move Rel (%i, %i)', x, y)
+                print('move Rel (%i, %i)', x, y)
             else:
-                self.logger.error('AutoGui Command error!')
+                print('AutoGui Command error!')
 
     def run(self):
         while True:
@@ -216,20 +215,20 @@ class TradeHandler(multiprocessing.Process):
                         # for debug only check once
                         # self.auto_check_orders = False
                     else:
-                        self.logger.debug('...')
+                        print('...')
                     self.last_check_orders_time = datetime.now()
 
                 continue
             else:
                 if event is not None:
-                    self.logger.debug('Got Event: event=%s', event)
+                    print('Got Event: event=%s', event)
                     if event.type == 'Order':
                         if event.direction == 'BUY':
                             self.buy_stock(event)
                         elif event.direction == 'SELL':
                             self.sell_stock(event)
                         else:
-                            self.logger.error('Order direction error!')
+                            print('Order direction error!')
 
                     elif event.type == 'CancelOrder':
                         self.cancel_order(event)
