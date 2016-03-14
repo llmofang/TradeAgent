@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pyautogui
 import multiprocessing
-import Queue
+from Queue import Empty
 from datetime import datetime
 from datetime import timedelta
 from Event import OrderStatusEvent
@@ -11,13 +11,12 @@ from MyUtils import read_commands
 import logging
 import logging.config
 
-
 class TradeHandler(multiprocessing.Process):
-    def __init__(self, events_in, events_out, auto_check_orders=False):
+    def __init__(self, events_trade, events_response, auto_check_orders=False):
         super(TradeHandler, self).__init__()
 
-        self.events_in = events_in
-        self.events_out = events_out
+        self.events_trade = events_trade
+        self.events_response = events_response
 
         cf = ConfigParser.ConfigParser()
         cf.read("tradeagent.conf")
@@ -32,8 +31,7 @@ class TradeHandler(multiprocessing.Process):
 
         self.cancel_cmd = read_commands(cf.get("cmd_mode", "cancel_cmd_file"))
         self.check_cmd = read_commands(cf.get("cmd_mode", "check_cmd_file"))
-        self.events_in = multiprocessing.Manager().Queue()
-        self.events_out = multiprocessing.Manager().Queue()
+
         self.auto_check_orders = auto_check_orders
 
         self.buyPosStock = self.get_var_pos(self.buy_cmd, 'stockcode')
@@ -153,8 +151,8 @@ class TradeHandler(multiprocessing.Process):
             if len(orders) > 0:
                 event = OrderStatusEvent(orders)
                 self.logger.debug('generate OrderStatusEvent=%s', event)
-                self.events_out.put(event)
-                qsize = self.events_out.qsize()
+                self.events_response.put(event)
+                qsize = self.events_response.qsize()
                 if qsize > 3:
                     self.logger.error('events queue size is too large: qsize=%i', qsize)
                 else:
@@ -217,10 +215,10 @@ class TradeHandler(multiprocessing.Process):
         logging.config.fileConfig('log.conf')
         self.logger = logging.getLogger('trade')
         while True:
+            event = None
             try:
-                # todo
-                event = self.events_in.get(False)
-            except Queue.Empty:
+                event = self.events_trade.get()
+            except Empty:
                 if datetime.now() - self.last_check_orders_time > timedelta(seconds=1):
                     if self.auto_check_orders:
                         self.check_orders()
@@ -229,8 +227,6 @@ class TradeHandler(multiprocessing.Process):
                     else:
                         self.logger.debug('...')
                     self.last_check_orders_time = datetime.now()
-
-                continue
             else:
                 if event is not None:
                     self.logger.debug('Got Event: event=%s', event)

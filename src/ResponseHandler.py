@@ -17,17 +17,17 @@ from qpython import qconnection
 class ResponseHandler(multiprocessing.Process):
     __metaclass__ = ABCMeta
 
-    def __init__(self, events):
+    def __init__(self, events_response):
         super(ResponseHandler, self).__init__()
         cf = ConfigParser.ConfigParser()
         cf.read("tradeagent.conf")
         self.q_host = cf.get("db", "host")
         self.q_port = cf.getint("db", "port")
         self.q = None
-        self.events = events
+        self.events_response = events_response
         self.response_table = cf.get("db", "response_table")
         # self.status = {u'未报': 0, u'已报': 1, u'未成': 2, u'已报待撤': 3,  u'已成': 4,  u'已撤': 5,  u'废单': 6}
-        self.kdb_var_prefix = cf.get("kdb", "var_prefix").split(',')
+        self.kdb_var_prefix = cf.get("kdb", "var_prefix")
         pd.set_option('mode.chained_assignment', None)
         # pd.set_option('display.encoding', 'gbk')
         self.logger = None
@@ -82,7 +82,7 @@ class ResponseHandler(multiprocessing.Process):
             # todo 撤单的无需更新
             try:
                 kdb_var = self.kdb_var_prefix + '_news'
-                if self.q('set', kdb_var, new_orders) == kdb_var:
+                if self.q('set',  np.string_(kdb_var), new_orders) == kdb_var:
                     self.logger.info('set new orders to my_new_orders successful!')
                 else:
                     self.logger.error('set new orders to my_new_orders error!')
@@ -150,8 +150,7 @@ class ResponseHandler(multiprocessing.Process):
         while True:
             event = None
             try:
-                while self.events.qsize() > 0:
-                    event = self.events.get()
+                event = self.events_response.get()
             except Empty:
                 print('queue empty error!')
             else:

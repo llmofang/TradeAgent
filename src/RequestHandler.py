@@ -25,11 +25,7 @@ class RequestHandler(multiprocessing.Process):
 
         self.request_table = cf.get("db", "request_table")
         self.event_types = event_types
-        users = cf.get("kdb", "sub_users").split(',')
-        if isinstance(users, list):
-            self.users = users
-        else:
-            self.users = []
+        self.users = cf.get("kdb", "sub_users").split(',')
 
         self.logger = None
 
@@ -42,7 +38,7 @@ class RequestHandler(multiprocessing.Process):
     def subscribe_request(self):
         # TODO
         self.logger.debug('subscribe trade: table=%s, users=%s', self.request_table, self.users)
-        if self.users == []:
+        if self.users == ['']:
             self.q.sync('.u.sub', np.string_(self.request_table), np.string_(''))
         else:
             self.q.sync('.u.sub', np.string_(self.request_table), [np.string_(user) for user in self.users])
