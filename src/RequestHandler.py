@@ -42,7 +42,10 @@ class RequestHandler(multiprocessing.Process):
     def subscribe_request(self):
         # TODO
         self.logger.debug('subscribe trade: table=%s, users=%s', self.request_table, self.users)
-        self.q.sync('.u.sub', np.string_(self.request_table), np.string_('' if self.users == [] else self.users))
+        if self.users == []:
+            self.q.sync('.u.sub', np.string_(self.request_table), np.string_(''))
+        else:
+            self.q.sync('.u.sub', np.string_(self.request_table), [np.string_(user) for user in self.users])
 
     def get_new_requests(self):
         index = ['sym', 'qid']
