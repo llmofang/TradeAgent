@@ -73,6 +73,7 @@ def run(cancel, check, order):
 
     trade_handler = TradeHandler(events_trade, events_response, check)
     request_handler = RequestHandler(events_response, events_trade, events_types)
+
     if broker == 'ht':
         response_handler = HTResponseHandler(events_response)
     elif broker == 'zx':

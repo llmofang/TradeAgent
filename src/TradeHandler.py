@@ -11,6 +11,7 @@ from MyUtils import read_commands
 import logging
 import logging.config
 
+
 class TradeHandler(multiprocessing.Process):
     def __init__(self, events_trade, events_response, auto_check_orders=False):
         super(TradeHandler, self).__init__()
@@ -108,7 +109,7 @@ class TradeHandler(multiprocessing.Process):
             # TODO
             pass
         else:
-            print('Unvalid cancel order command!')
+            self.logger.info('Unvalid cancel order command!')
 
     def check_mouse_position(self):
         while True:
@@ -141,7 +142,7 @@ class TradeHandler(multiprocessing.Process):
                     new_orders = pd.DataFrame([])
 
         except Exception, e:
-            print(e)
+            self.logger.error(e)
         finally:
             return new_orders
 
@@ -158,7 +159,7 @@ class TradeHandler(multiprocessing.Process):
                 else:
                     self.logger.debug('events queue size: qsize=%i', qsize)
         except Exception, e:
-            self.logger.info(e)
+            self.logger.error(e)
 
     def execute_cmd(self, cmd):
         for line in cmd:
@@ -217,7 +218,7 @@ class TradeHandler(multiprocessing.Process):
         while True:
             event = None
             try:
-                event = self.events_trade.get()
+                event = self.events_trade.get(False)
             except Empty:
                 if datetime.now() - self.last_check_orders_time > timedelta(seconds=1):
                     if self.auto_check_orders:

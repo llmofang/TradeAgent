@@ -17,7 +17,7 @@ class ZXResponseHandler(ResponseHandler):
             # 未完成的委托的status<4
             tagged_unfinished = self.orders[(self.orders['tagged'] == 1) &
                                             (self.orders['status'] < 4)]
-            print('tagged and unfinished orders: tagged_unfinished=%s', tagged_unfinished)
+            self.logger.debug('tagged and unfinished orders: tagged_unfinished=%s', tagged_unfinished)
             for i in range(len(tagged_unfinished)):
                 match = new_orders[new_orders[u'申请编号'] == tagged_unfinished['entrustno'].iloc[i]]
                 changed = 0
@@ -39,14 +39,14 @@ class ZXResponseHandler(ResponseHandler):
             changes = tagged_unfinished[tagged_unfinished['changed'] == 1]
 
             if len(changes) > 0:
-                print('tagged and unfinished orders: changes=%s', changes.to_string())
-                print('sending changes to kdb')
+                self.logger.debug('tagged and unfinished orders: changes=%s', changes.to_string())
+                self.logger.debug('sending changes to kdb')
                 self.send_changes(changes)
-                print('before update changes: orders=%s', self.orders.to_string())
+                self.logger.debug('before update changes: orders=%s', self.orders.to_string())
                 self.orders.update(changes)
-                print('after update changes: orders=%s', self.orders.to_string())
+                self.logger.debug('after update changes: orders=%s', self.orders.to_string())
         except Exception, e:
-            print(e)
+            self.logger.error(e)
 
     # 标记委托号，并更新成交信息
     def untagged_changes(self, new_orders, nearest_min):
@@ -56,12 +56,12 @@ class ZXResponseHandler(ResponseHandler):
             nearest = datetime.now() - timedelta(minutes=nearest_min)
             untagged = self.orders[(self.orders['tagged'] == 0) & (self.orders['time'] > nearest)]
 
-            print('untagged orders: untagged=%s', untagged.to_string())
+            self.logger.debug('untagged orders: untagged=%s', untagged.to_string())
             # 从new_orders中查找出没有匹配委托编号的记录
             to_tag = new_orders[(new_orders[u'申请编号'].isin(self.orders['entrustno']) == False) &
                                 (new_orders[u'业务名称'] != u'撤单')]
             to_tag['tagged'] = np.zeros(len(to_tag))
-            print('to_tag = %s', to_tag.to_string())
+            self.logger.debug('to_tag = %s', to_tag.to_string())
             # to_tag = to_tag.set_index([u'委托时间'])
             for i in range(len(untagged)):
                 old = untagged['time'].iloc[i] - timedelta(minutes=3)
@@ -69,23 +69,23 @@ class ZXResponseHandler(ResponseHandler):
 
                 # 时间上匹配上下3分钟的
                 time_match = to_tag.between_time(old, new)
-                print('time_match = %s', time_match.to_string())
-                print('time_match: dtypes = %s', time_match.dtypes)
+                self.logger.debug('time_match = %s', time_match.to_string())
+                self.logger.debug('time_match: dtypes = %s', time_match.dtypes)
                 match = time_match[(time_match[u'证券代码'] == int(untagged['stockcode'].iloc[i])) &
                                    (time_match[u'委托价格'] == untagged['askprice'].iloc[i]) &
                                    (time_match[u'委托数量'] == abs(int(untagged['askvol'].iloc[i]))) &
                                    (time_match[u'买卖'] == (u'买入' if int(untagged['askvol'].iloc[i]) > 0 else u'卖出')) &
                                    #(time_match[u'买卖'] == (u'证券买入' if int(untagged['askvol'].iloc[i]) > 0 else u'证券卖出')) &
                                    (time_match['tagged'] == 0)]
-                print('find order match untagged order: match=%s', match.to_string())
+                self.logger.debug('find order match untagged order: match=%s', match.to_string())
                 match = match.sort_index(ascending=True)
                 changed = 0
                 if len(match) > 0:
                     changed = 1
                     if len(match) == 1:
-                        print('Perfect match row!')
+                        self.logger.debug('Perfect match row!')
                     else:
-                        print('Find more than 1 for row!')
+                        self.logger.info('Find more than 1 for row!')
                     entrustno = match[u'申请编号'].iloc[0]
                     if untagged['entrustno'].iloc[i] != entrustno:
                         untagged['entrustno'].iloc[i] = entrustno
@@ -102,16 +102,16 @@ class ZXResponseHandler(ResponseHandler):
                     untagged['changed'].iloc[i] = changed
 
                 else:
-                    print('Can not find matched order!')
+                    self.logger.error('Can not find matched order!')
 
             changes = untagged[untagged['changed'] == 1]
             if len(changes) > 0:
-                print('untagged orders: changes=%s', changes.to_string())
-                print('sending changes to kdb')
+                self.logger.debug('untagged orders: changes=%s', changes.to_string())
+                self.logger.debug('sending changes to kdb')
                 self.send_changes(changes)
-                print('before update changes: orders=%s', self.orders.to_string())
+                self.logger.debug('before update changes: orders=%s', self.orders.to_string())
                 self.orders.update(changes)
-                print('after update changes: orders=%s', self.orders.to_string())
+                self.logger.debug('after update changes: orders=%s', self.orders.to_string())
 
         except Exception, e:
-            print(e)
+            self.logger.error(e)
