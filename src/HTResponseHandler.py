@@ -32,14 +32,14 @@ class HTResponseHandler(ResponseHandler):
                     if tagged_unfinished['bidvol'].iloc[i] != ratio * match[u'成交数量'].iloc[0]:
                         tagged_unfinished['bidvol'].iloc[i] = ratio * match[u'成交数量'].iloc[0]
                         changed = 1
-                    # 没有已撤数量
-                    # if tagged_unfinished['withdraw'].iloc[i] != match[u'已撤数量'].iloc[0]:
-                    #     tagged_unfinished['withdraw'].iloc[i] = match[u'已撤数量'].iloc[0]
-                    #     changed = 1
-                    # TODO
+
                     status = match[u'备注'].iloc[0]
                     status = status[:2]
                     self.logger.debug('status = %s', status)
+                    if status == u'已撤' or status == u'部撤':
+                        tagged_unfinished['withdraw'].iloc[i] = \
+                            match[u'委托数量'].iloc[0] - abs(match[u'成交数量'].iloc[0])
+                        changed = 1
                     if tagged_unfinished['status'].iloc[i] != self.status[status]:
                         tagged_unfinished['status'].iloc[i] = self.status[status]
                         changed = 1
@@ -68,7 +68,7 @@ class HTResponseHandler(ResponseHandler):
             # 从new_orders中查找出没有匹配委托编号的记录
             to_tag = new_orders[new_orders[u'合同编号'].isin(self.orders['entrustno']) == False ]
             to_tag['tagged'] = np.zeros(len(to_tag))
-            to_tag[u'买卖'] = to_tag[u'操作'].apply(lambda x: u'证券买入' if x.find(u'买') else u'证券卖出')
+            to_tag[u'买卖'] = to_tag[u'操作'].apply(lambda x: u'证券买入' if (x.find(u'买')!=-1) else u'证券卖出')
             to_tag[u'委托状态'] = to_tag[u'备注'].str[:2]
             self.logger.debug('to_tag = %s', to_tag.to_string())
             # to_tag = to_tag.set_index([u'委托时间'])
@@ -108,6 +108,10 @@ class HTResponseHandler(ResponseHandler):
                     # TODO
                     status = match[u'备注'].iloc[0]
                     status = status[:2]
+                    if status == u'已撤' or status == u'部撤':
+                        untagged['withdraw'].iloc[i] = \
+                            match[u'委托数量'].iloc[0] - abs(match[u'成交数量'].iloc[0])
+                        changed = 1
                     if untagged['status'].iloc[i] != self.status[status]:
                         untagged['status'].iloc[i] = self.status[status]
                     to_tag.loc[to_tag[u'合同编号'] == entrustno, 'tagged'] = 1
