@@ -100,7 +100,7 @@ class ResponseHandler(multiprocessing.Process):
             self.orders['tagged'] = np.zeros(len(self.orders))
             self.orders['tagged'] = self.orders['entrustno'].map(lambda x: 1 if x > 0 else 0)
             self.tagged_changes(event.orders)
-            self.untagged_changes(event.orders, 2)
+            self.untagged_changes(event.orders, 5)
         except Exception, e:
             self.logger.error('Exception: %s', e)
 
