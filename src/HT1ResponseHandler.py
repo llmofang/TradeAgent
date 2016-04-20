@@ -7,7 +7,7 @@ from ResponseHandler import ResponseHandler
 
 class HT1ResponseHandler(ResponseHandler):
     def __init__(self, events):
-        super(ZXResponseHandler, self).__init__(events)
+        super(HT1ResponseHandler, self).__init__(events)
         self.status = {u'待报': 0, u'未报': 0, u'已报': 1, u'未成': 2, u'部分成交': 2, u'已报待撤': 3, u'待撤': 3,
                        u'已成交': 4, u'场内撤单': 5, u'部分撤单': 5, u'废单': 6}
 
