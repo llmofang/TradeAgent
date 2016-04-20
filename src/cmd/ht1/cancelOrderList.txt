@@ -1,0 +1,15 @@
+press f5 1 0 0.5
+moveto 220 117 0.5
+rightclick 0 0 0
+moveto 273 174 0.5
+click 0 0 0
+moveto 254 118 0.5
+click 0 0 0
+moveto 221 158 0.5
+click 0 0 0
+type entrustno 600001 3
+press enter 1 0 0
+moveto 223 136 0.5
+doubleclick 0
+moveto 589 554 0.3
+click 0 0 0
