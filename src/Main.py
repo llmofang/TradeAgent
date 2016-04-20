@@ -3,6 +3,8 @@ from TradeHandler import TradeHandler
 from RequestHandler import RequestHandler
 from ZXResponseHandler import ZXResponseHandler
 from HTResponseHandler import HTResponseHandler
+from HT1ResponseHandler import HT1ResponseHandler
+
 
 import sys
 import logging
@@ -78,6 +80,8 @@ def run(cancel, check, order):
         response_handler = HTResponseHandler(events_response)
     elif broker == 'zx':
         response_handler = ZXResponseHandler(events_response)
+    elif broker == 'ht1':
+        response_handler = HT1ResponseHandler(events_response)
     else:
         logger.error('Unknown broker =%s', broker)
 
