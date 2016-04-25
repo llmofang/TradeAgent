@@ -8,8 +8,8 @@ from ResponseHandler import ResponseHandler
 class HT1ResponseHandler(ResponseHandler):
     def __init__(self, events):
         super(HT1ResponseHandler, self).__init__(events)
-        self.status = {u'待报': 0, u'未报': 0, u'已报': 1, u'未成': 2, u'部分成交': 2, u'已报待撤': 3, u'待撤': 3,
-                       u'已成交': 4, u'场内撤单': 5, u'部分撤单': 5, u'废单': 6}
+        self.status = {u'待报': 0, u'未报': 0, u'已报': 1, u'未成交': 1, u'部分成交': 2, u'已报待撤': 3, u'待撤': 3,
+                       u'已成交': 4, u'场内撤单': 5, u'场外撤单': 5, u'部分撤单': 5, u'废单': 6}
 
     # 更新已标记了委托号且未完成的委托
     def tagged_changes(self, new_orders):
@@ -32,7 +32,7 @@ class HT1ResponseHandler(ResponseHandler):
                     if tagged_unfinished['status'].iloc[i] != self.status[match[u'委托状态'].iloc[0]]:
                         tagged_unfinished['status'].iloc[i] = self.status[match[u'委托状态'].iloc[0]]
                         changed = 1
-                    if self.status[match[u'委托状态'].iloc[0]] == 4 or self.status[match[u'委托状态'].iloc[0]] == 5:
+                    if self.status[match[u'委托状态'].iloc[0]] == 5:
                         tagged_unfinished['withdraw'].iloc[i] = abs(tagged_unfinished['askvol'].iloc[i]) -\
                                                                 abs(tagged_unfinished['bidvol'].iloc[i])
 
@@ -98,7 +98,7 @@ class HT1ResponseHandler(ResponseHandler):
                     #     untagged['withdraw'].iloc[i] = match[u'已撤数量'].iloc[0]
                     if untagged['status'].iloc[i] != self.status[match[u'委托状态'].iloc[0]]:
                         untagged['status'].iloc[i] = self.status[match[u'委托状态'].iloc[0]]
-                    if self.status[match[u'委托状态'].iloc[0]] == 4 or self.status[match[u'委托状态'].iloc[0]] == 5:
+                    if self.status[match[u'委托状态'].iloc[0]] == 5:
                         untagged['withdraw'].iloc[i] = abs(match[u'委托数量'].iloc[0]) -\
                                                                 abs(match[u'成交数量'].iloc[0])
                     to_tag.loc[to_tag[u'合同编号'] == entrustno, 'tagged'] = 1
