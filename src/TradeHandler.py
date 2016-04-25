@@ -123,10 +123,10 @@ class TradeHandler(multiprocessing.Process):
         self.execute_cmd(self.check_cmd)
         new_orders = pd.DataFrame([])
         try:
-            new_orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'委托时间'], nrows=50)
+            new_orders = pd.read_clipboard(encoding='gbk', parse_dates=[u'申报时间'], nrows=50)
             self.logger.debug('got new orders from clipboard, new_orders = %s', new_orders.to_string())
             if len(new_orders) > 0:
-                new_orders = new_orders.set_index([u'委托时间'])
+                new_orders = new_orders.set_index([u'申报时间'])
                 new = datetime.now() + timedelta(minutes=5)
                 old = datetime.now() - timedelta(minutes=90)
                 new_orders = new_orders.between_time(old, new)
