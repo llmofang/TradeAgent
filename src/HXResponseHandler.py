@@ -20,7 +20,9 @@ class HXResponseHandler(ResponseHandler):
                                             (self.orders['status'] < 4)]
             self.logger.debug('tagged and unfinished orders: tagged_unfinished=%s', tagged_unfinished)
             for i in range(len(tagged_unfinished)):
-                match = new_orders[new_orders[u'合同编号'] == tagged_unfinished['entrustno'].iloc[i]]
+                match = new_orders[new_orders[u'合同编号'] == tagged_unfinished['entrustno'].iloc[i] &
+                                   (new_orders[u'操作'] != u'证券买入撤单') &
+                                   (new_orders[u'操作'] != u'证券卖出撤单')]
                 changed = 0
                 if len(match) > 0:
                     if tagged_unfinished['bidprice'].iloc[i] != match[u'成交均价'].iloc[0]:
