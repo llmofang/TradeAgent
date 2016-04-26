@@ -9,8 +9,8 @@ class HXResponseHandler(ResponseHandler):
     def __init__(self, events):
         super(HXResponseHandler, self).__init__(events)
         # 已确认： 已申报 部分成交 全部成交 全部撤单 部分撤单
-        self.status = {u'待报': 0, u'未报': 0, u'已申报': 1, u'部分成交': 2, u'已报待撤': 3, u'待撤': 3,
-                       u'全部成交': 4, u'全部撤单': 5, u'部分撤单': 5, u'废单': 6}
+        self.status = {u'待报': 0, u'待申报': 0, u'已申报': 1, u'部分成交': 2, u'已报待撤': 3, u'待撤': 3,
+                       u'全部成交': 4, u'全部撤单': 5, u'部分撤单': 5,  u'内部撤单': 5, u'废单': 6}
 
     # 更新已标记了委托号且未完成的委托
     def tagged_changes(self, new_orders):
