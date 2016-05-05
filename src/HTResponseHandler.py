@@ -11,7 +11,9 @@ class HTResponseHandler(ResponseHandler):
         super(HTResponseHandler, self).__init__(events)
         # todo 未报 已报 未成 已报待撤 暂未捕获
         # 部撤是部分成交,部分已撤
-        self.status = {u'未报': 0, u'已报': 1, u'未成': 2, u'已报待撤': 3,  u'已成': 4,  u'已撤': 5, u'部撤': 5,  u'废单': 6}
+        # self.status = {u'未报': 0, u'已报': 1, u'未成': 2, u'已报待撤': 3,  u'已成': 4,  u'已撤': 5, u'部撤': 5,  u'废单': 6}
+        # update 2016/05/05
+        self.status = {u'未报': 0, u'已报': 1, u'未成': 2, u'部成': 2, u'待撤': 3,  u'已成': 4,  u'已撤': 5, u'部撤': 5,  u'废单': 6}
 
 
     # 更新已标记了委托号且未完成的委托
