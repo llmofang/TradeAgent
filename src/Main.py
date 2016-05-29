@@ -5,6 +5,7 @@ from ZXResponseHandler import ZXResponseHandler
 from HTResponseHandler import HTResponseHandler
 from HT1ResponseHandler import HT1ResponseHandler
 from HXResponseHandler import HXResponseHandler
+from GTJAResponseHandler import GTJAResponseHandler
 
 
 import sys
@@ -85,6 +86,8 @@ def run(cancel, check, order):
         response_handler = HT1ResponseHandler(events_response)
     elif broker == 'hx':
         response_handler = HXResponseHandler(events_response)
+    elif broker == 'gtja':
+        response_handler = GTJAResponseHandler(events_response)
     else:
         logger.error('Unknown broker =%s', broker)
 
